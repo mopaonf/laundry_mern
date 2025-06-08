@@ -12,6 +12,7 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { WashBasketProvider } from '@/components/WashBasketContext';
 
 export default function RootLayout() {
    const colorScheme = useColorScheme();
@@ -27,20 +28,22 @@ export default function RootLayout() {
    return (
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
          <SafeAreaProvider>
-            <View style={styles.container}>
-               <Stack
-                  screenOptions={{
-                     headerShown: false,
-                     contentStyle: { backgroundColor: 'transparent' },
-                  }}
-               >
-                  <Stack.Screen
-                     name="(tabs)"
-                     options={{ headerShown: false }}
-                  />
-                  <Stack.Screen name="+not-found" />
-               </Stack>
-            </View>
+            <WashBasketProvider>
+               <View style={styles.container}>
+                  <Stack
+                     screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor: 'transparent' },
+                     }}
+                  >
+                     <Stack.Screen
+                        name="(tabs)"
+                        options={{ headerShown: false }}
+                     />
+                     <Stack.Screen name="+not-found" />
+                  </Stack>
+               </View>
+            </WashBasketProvider>
          </SafeAreaProvider>
          <StatusBar style="auto" />
       </ThemeProvider>

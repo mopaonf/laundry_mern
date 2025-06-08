@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useWashBasket } from '@/components/WashBasketContext';
 
 // Types for the app data
 interface PromotionItem {
@@ -27,6 +29,7 @@ interface CategoryItem {
    id: string;
    name: string;
    icon: keyof typeof MaterialIcons.glyphMap;
+   route?: string; // Add route property for navigation
 }
 
 interface ProductItem {
@@ -69,16 +72,19 @@ const categories: CategoryItem[] = [
       id: '2',
       name: 'Clothes',
       icon: 'dry-cleaning' as keyof typeof MaterialIcons.glyphMap,
+      route: '/categorycards/clothes', // Updated path to reflect new location
    },
    {
       id: '3',
       name: 'Households',
       icon: 'home' as keyof typeof MaterialIcons.glyphMap,
+      route: '/categorycards/households',
    },
    {
       id: '4',
       name: 'Curtains',
       icon: 'curtains' as keyof typeof MaterialIcons.glyphMap,
+      route: '/categorycards/curtains',
    },
 ];
 
@@ -126,6 +132,8 @@ export default function HomeScreen() {
    const [currentPromotionIndex, setCurrentPromotionIndex] = useState(0);
    const flatListRef = useRef<FlatList>(null);
    const { width: screenWidth } = Dimensions.get('window');
+   const router = useRouter(); // Add router for navigation
+   const { state, dispatch } = useWashBasket();
 
    // Auto-scroll promotions
    useEffect(() => {
@@ -142,9 +150,19 @@ export default function HomeScreen() {
       return () => clearInterval(interval);
    }, [currentPromotionIndex]);
 
+   // Calculate total quantity for badge
+   const totalQuantity = state.items.reduce((sum, i) => sum + i.quantity, 0);
+
    // Render functions for the different sections
    const renderCategoryItem = ({ item }: { item: CategoryItem }) => (
-      <TouchableOpacity style={styles.categoryCard}>
+      <TouchableOpacity
+         style={styles.categoryCard}
+         onPress={() => {
+            if (item.route) {
+               router.push(item.route as any);
+            }
+         }}
+      >
          <MaterialIcons name={item.icon} size={28} color="#28B9F4" />
          <ThemedText style={styles.categoryText}>{item.name}</ThemedText>
       </TouchableOpacity>
@@ -169,7 +187,22 @@ export default function HomeScreen() {
             <ThemedText style={styles.productName}>{item.name}</ThemedText>
             <ThemedText style={styles.productPrice}>{item.price}</ThemedText>
          </View>
-         <TouchableOpacity style={styles.addButton}>
+         <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => {
+               // Convert price string to number (remove non-digits)
+               const priceNum = Number(item.price.replace(/[^\d]/g, ''));
+               dispatch({
+                  type: 'ADD_ITEM',
+                  item: {
+                     id: item.id,
+                     name: item.name,
+                     price: priceNum,
+                     image: item.image,
+                  },
+               });
+            }}
+         >
             <MaterialIcons name="add" size={20} color="white" />
          </TouchableOpacity>
       </ThemedView>
@@ -208,6 +241,43 @@ export default function HomeScreen() {
                      size={28}
                      color="#E0E0E0"
                   />
+               </TouchableOpacity>
+               <TouchableOpacity
+                  style={[styles.iconButton, { position: 'relative' }]}
+                  onPress={() => router.push('/WashBasketScreen')}
+                  activeOpacity={0.7}
+               >
+                  <MaterialIcons
+                     name="shopping-cart"
+                     size={28}
+                     color="#E0E0E0"
+                  />
+                  {totalQuantity > 0 && (
+                     <View
+                        style={{
+                           position: 'absolute',
+                           top: 2,
+                           right: 2,
+                           backgroundColor: '#28B9F4',
+                           borderRadius: 8,
+                           minWidth: 16,
+                           height: 16,
+                           justifyContent: 'center',
+                           alignItems: 'center',
+                           paddingHorizontal: 3,
+                        }}
+                     >
+                        <ThemedText
+                           style={{
+                              color: '#fff',
+                              fontSize: 10,
+                              fontWeight: 'bold',
+                           }}
+                        >
+                           {totalQuantity}
+                        </ThemedText>
+                     </View>
+                  )}
                </TouchableOpacity>
             </View>
          </ThemedView>
@@ -274,7 +344,6 @@ export default function HomeScreen() {
                   renderItem={renderProductItem}
                   keyExtractor={(item) => item.id}
                   scrollEnabled={false}
-                  contentContainerStyle={styles.productList}
                />
             </ThemedView>
 
