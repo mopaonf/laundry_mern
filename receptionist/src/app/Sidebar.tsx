@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
    FiHome,
    FiPlusCircle,
@@ -9,6 +9,7 @@ import {
    FiSettings,
    FiLogOut,
 } from 'react-icons/fi';
+import { useState } from 'react';
 
 const navLinks = [
    { href: '/', label: 'Dashboard', icon: <FiHome size={20} /> },
@@ -24,6 +25,30 @@ const navLinks = [
 
 export default function Sidebar() {
    const pathname = usePathname();
+   const router = useRouter();
+   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+   const handleLogout = async () => {
+      try {
+         setIsLoggingOut(true);
+
+         // You can replace this with your actual logout API call
+         // For example: await signOut() or await fetch('/api/logout')
+         await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API call
+
+         // Clear any stored credentials
+         localStorage.removeItem('auth_token');
+         sessionStorage.removeItem('user_data');
+
+         // Redirect to login page
+         router.push('/login');
+      } catch (error) {
+         console.error('Logout failed:', error);
+      } finally {
+         setIsLoggingOut(false);
+      }
+   };
+
    return (
       <aside className="hidden md:flex flex-col w-64 bg-white shadow-lg rounded-r-3xl p-6 transition-all duration-300 md:relative fixed md:static z-30">
          <div className="mb-10 flex items-center gap-2">
@@ -50,10 +75,16 @@ export default function Sidebar() {
                ))}
             </ul>
          </nav>
-         <div className="mt-10 flex items-center gap-3 cursor-pointer hover:bg-[#e6f6fd] rounded-lg px-4 py-3 transition-colors">
+         <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="mt-10 flex items-center gap-3 w-full cursor-pointer hover:bg-[#e6f6fd] rounded-lg px-4 py-3 transition-colors"
+         >
             <FiLogOut size={20} className="text-[#28B9F4]" />
-            <span className="text-gray-700 font-medium">Logout</span>
-         </div>
+            <span className="text-gray-700 font-medium">
+               {isLoggingOut ? 'Logging out...' : 'Logout'}
+            </span>
+         </button>
       </aside>
    );
 }

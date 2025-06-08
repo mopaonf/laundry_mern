@@ -1,0 +1,58 @@
+/**
+ * API client for LaundryPro receptionist app
+ */
+const API_BASE =
+   process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000/api';
+
+/**
+ * Makes an API request to the backend
+ * @param endpoint The API endpoint to request (without leading slash)
+ * @param options The fetch options
+ * @returns The fetch response parsed as JSON
+ */
+export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+   try {
+      // Ensure the endpoint doesn't start with a slash
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+
+      // Build the complete URL
+      const url = `${API_BASE}/${cleanEndpoint}`;
+
+      console.log(`Making API request to: ${url}`);
+
+      // Get auth token if available (client-side only)
+      let authHeaders: Record<string, string> = {};
+      if (typeof window !== 'undefined') {
+         const token = localStorage.getItem('auth_token');
+         if (token) {
+            authHeaders = { Authorization: `Bearer ${token}` };
+         }
+      }
+
+      // Set default headers if not provided
+      const headers = {
+         'Content-Type': 'application/json',
+         ...authHeaders,
+         ...(options.headers || {}),
+      };
+
+      // Make the request
+      const response = await fetch(url, {
+         ...options,
+         headers,
+      });
+
+      // Handle HTTP errors
+      if (!response.ok) {
+         const errorData = await response.json().catch(() => ({}));
+         const errorMessage = errorData.message || `API error: ${response.status}`;
+         throw new Error(errorMessage);
+      }
+
+      // Parse and return the JSON response
+      return await response.json();
+   } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+   }
+}
