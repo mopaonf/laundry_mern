@@ -258,7 +258,7 @@ export default function HomeScreen() {
                            position: 'absolute',
                            top: 2,
                            right: 2,
-                           backgroundColor: '#28B9F4',
+                           backgroundColor: '#E82B25',
                            borderRadius: 8,
                            minWidth: 16,
                            height: 16,
@@ -271,7 +271,7 @@ export default function HomeScreen() {
                            style={{
                               color: '#fff',
                               fontSize: 10,
-                              fontWeight: 'bold',
+                              fontWeight: 'bold'
                            }}
                         >
                            {totalQuantity}

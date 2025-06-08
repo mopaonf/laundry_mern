@@ -171,7 +171,7 @@ export default function CurtainsScreen() {
                            position: 'absolute',
                            right: -2,
                            top: -2,
-                           backgroundColor: '#28B9F4',
+                           backgroundColor: '#E82B25',
                            borderRadius: 10,
                            minWidth: 18,
                            height: 18,
