@@ -13,7 +13,7 @@ import {
 const navLinks = [
    { href: '/', label: 'Dashboard', icon: <FiHome size={20} /> },
    {
-      href: '/orders/new',
+      href: '/neworder',
       label: 'New Order',
       icon: <FiPlusCircle size={20} />,
    },

@@ -4,6 +4,13 @@ import {
    FiCheckCircle,
    FiDollarSign,
 } from 'react-icons/fi';
+import { Pacifico } from 'next/font/google';
+
+const pacifico = Pacifico({
+   weight: '400',
+   subsets: ['latin'],
+   display: 'swap',
+});
 
 const summary = [
    {
@@ -23,7 +30,7 @@ const summary = [
    },
    {
       label: 'Earnings Today',
-      value: '200,500',
+      value: '200,500 FCFA',
       icon: <FiDollarSign size={28} className="text-[#28B9F4]" />,
    },
 ];
@@ -34,35 +41,35 @@ const recentOrders = [
       customer: 'Amit Sharma',
       status: 'In Progress',
       date: '2024-07-08',
-      total: '₹300',
+      total: '300 FCFA',
    },
    {
       id: 'ORD-1000',
       customer: 'Priya Singh',
       status: 'Ready',
       date: '2024-07-08',
-      total: '₹450',
+      total: '45,000 FCFA',
    },
    {
       id: 'ORD-0999',
       customer: 'Rahul Verma',
       status: 'Completed',
       date: '2024-07-08',
-      total: '₹220',
+      total: '22,000 FCFA',
    },
    {
       id: 'ORD-0998',
       customer: 'Sneha Patel',
       status: 'In Progress',
       date: '2024-07-08',
-      total: '₹380',
+      total: '38,000 FCFA',
    },
    {
       id: 'ORD-0997',
       customer: 'Vikas Kumar',
       status: 'Ready',
       date: '2024-07-08',
-      total: '₹500',
+      total: '500 FCFA',
    },
 ];
 
@@ -75,7 +82,17 @@ const statusColors: Record<string, string> = {
 export default function Home() {
    return (
       <div className="p-4 md:p-8 space-y-10">
-         <h1 className="text-2xl font-bold text-gray-800 mb-2">Dashboard</h1>
+         {/* Enhanced header styling */}
+         <div className="relative pb-2 mb-6">
+            <h1
+               className={`text-3xl md:text-4xl ${pacifico.className} text-gray-100 relative z-10`}
+            >
+               Dashboard
+            </h1>
+            <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#28B9F4] to-transparent w-32"></div>
+            <div className="absolute -bottom-1 left-0 h-[3px] bg-gray-100 w-full"></div>
+         </div>
+
          {/* Summary Cards */}
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {summary.map((item) => (
@@ -95,9 +112,16 @@ export default function Home() {
          </div>
          {/* Recent Orders Table */}
          <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">
+            <div className="relative pb-2 mb-6">
+            <h1
+               className={` text-2xl ${pacifico.className} text-gray-100 relative z-10`}
+            >
                Recent Orders
-            </h2>
+            </h1>
+            <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#28B9F4] to-transparent w-32"></div>
+            <div className="absolute -bottom-1 left-0 h-[2px] bg-gray-100 w-full"></div>
+         </div>
+
             <div className="overflow-x-auto bg-white rounded-2xl shadow">
                <table className="min-w-full text-sm">
                   <thead>
