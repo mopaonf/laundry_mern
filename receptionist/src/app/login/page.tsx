@@ -108,9 +108,6 @@ export default function Login() {
                      className="w-32 h-32 object-contain"
                   />
                </div>
-               <h2 className="mt-6 text-3xl font-bold text-[#28B9F4]">
-                  Le panier à linge
-               </h2>
                <p className="mt-2 text-sm text-gray-600">Receptionist Portal</p>
             </div>
             {error && (

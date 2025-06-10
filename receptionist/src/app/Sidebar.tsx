@@ -92,10 +92,6 @@ export default function Sidebar() {
                   alt="Le panier à linge"
                   className="h-14 w-auto"
                />
-               
-               <span className="text-xl font-bold text-[#28B9F4]">
-                  Le panier à linge
-               </span>
             </div>
             <nav className="flex-1">
                <ul className="space-y-2">
@@ -148,9 +144,6 @@ export default function Sidebar() {
                   alt="Le panier à linge"
                   className="h-8 w-auto"
                />
-               <span className="text-xl font-bold text-[#28B9F4]">
-                  Le panier à linge
-               </span>
             </div>
             <nav className="flex-1">
                <ul className="space-y-2">
