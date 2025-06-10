@@ -1,13 +1,13 @@
 'use client';
 
-import toast from 'react-hot-toast';
+import toast, { Renderable } from 'react-hot-toast';
 
 // Define toast types
 type ToastType = 'success' | 'error' | 'info' | 'loading' | 'custom';
 
 interface ToastOptions {
    duration?: number;
-   icon?: string | JSX.Element;
+   icon?: Renderable;
    position?:
       | 'top-left'
       | 'top-center'
@@ -52,7 +52,7 @@ const getToastStyle = (type: ToastType) => {
 };
 
 // Default icons based on toast type
-const getToastIcon = (type: ToastType, customIcon?: string | JSX.Element) => {
+const getToastIcon = (type: ToastType, customIcon?: Renderable) => {
    if (customIcon) return customIcon;
 
    switch (type) {

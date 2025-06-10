@@ -23,7 +23,7 @@ export async function loginReceptionist(
       // Use our API client for consistent requests
       const response = await apiRequest('auth/login', {
          method: 'POST',
-         body: JSON.stringify({ email, password }),
+         data: { email, password },
       });
 
       // Return the full response which includes token and user info

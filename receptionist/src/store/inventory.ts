@@ -24,23 +24,51 @@ export const fetchInventoryItems = async (): Promise<InventoryItem[]> => {
 
       // Handle different response formats from the backend
       if (response && Array.isArray(response)) {
-         return response.map((item) => ({
-            ...item,
-            id: item._id, // Ensure compatibility with frontend
-            price: item.basePrice, // Map basePrice to price for frontend
-         }));
+         // Cast each item to ensure it has the required InventoryItem properties
+         return response.map((item: Record<string, unknown>) => {
+            const inventoryItem: InventoryItem = {
+               _id: item._id as string,
+               name: item.name as string,
+               category: item.category as string,
+               serviceType: item.serviceType as string,
+               basePrice: item.basePrice as number,
+               id: item._id as string,
+               price: item.basePrice as number,
+               image: item.image as string | undefined,
+               createdAt: item.createdAt as string | undefined,
+            };
+            return inventoryItem;
+         });
       } else if (response && response.data && Array.isArray(response.data)) {
-         return response.data.map((item) => ({
-            ...item,
-            id: item._id,
-            price: item.basePrice,
-         }));
+         return response.data.map((item: Record<string, unknown>) => {
+            const inventoryItem: InventoryItem = {
+               _id: item._id as string,
+               name: item.name as string,
+               category: item.category as string,
+               serviceType: item.serviceType as string,
+               basePrice: item.basePrice as number,
+               id: item._id as string,
+               price: item.basePrice as number,
+               image: item.image as string | undefined,
+               createdAt: item.createdAt as string | undefined,
+            };
+            return inventoryItem;
+         });
       } else if (response && response.success && Array.isArray(response.data)) {
-         return response.data.map((item) => ({
-            ...item,
-            id: item._id,
-            price: item.basePrice,
-         }));
+         return response.data.map((item: Record<string, unknown>) => {
+            const inventoryItem: InventoryItem = {
+               _id: item._id as string,
+               name: item.name as string,
+               category: item.category as string,
+               serviceType: item.serviceType as string,
+               basePrice: item.basePrice as number,
+               id: item._id as string,
+               price: item.basePrice as number,
+               image: item.image as string | undefined,
+               createdAt: item.createdAt as string | undefined,
+            };
+            return inventoryItem;
+         });
       } else {
          console.log('Unexpected response format:', response);
          return [];
