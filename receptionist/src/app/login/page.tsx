@@ -99,18 +99,20 @@ export default function Login() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
          <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
             <div className="text-center">
+               {' '}
                <div className="flex justify-center">
-                  {/* Replace with your actual logo */}
-                  <div className="w-24 h-24 rounded-full bg-[#28B9F4] flex items-center justify-center">
-                     <h1 className="text-white text-3xl font-bold">LP</h1>
-                  </div>
+                  {/* Client's logo */}
+                  <img
+                     src="/images/PL.png"
+                     alt="Le panier à linge"
+                     className="w-32 h-32 object-contain"
+                  />
                </div>
-               <h2 className="mt-6 text-3xl font-bold text-gray-900">
-                  LaundryPro
+               <h2 className="mt-6 text-3xl font-bold text-[#28B9F4]">
+                  Le panier à linge
                </h2>
                <p className="mt-2 text-sm text-gray-600">Receptionist Portal</p>
             </div>
-
             {error && (
                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded">
                   <div className="flex">
@@ -120,7 +122,6 @@ export default function Login() {
                   </div>
                </div>
             )}
-
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                <div className="rounded-md shadow-sm space-y-4">
                   <div>
@@ -213,10 +214,9 @@ export default function Login() {
                      </a>
                   </div>
                </div>
-            </form>
-
+            </form>{' '}
             <div className="text-center text-xs text-gray-500 mt-8">
-               <p>© 2024 LaundryPro. All rights reserved.</p>
+               <p>© 2024 Le panier à linge. All rights reserved.</p>
             </div>
          </div>
       </div>

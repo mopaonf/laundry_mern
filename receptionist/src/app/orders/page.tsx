@@ -134,29 +134,30 @@ export default function OrdersPage() {
 
    return (
       <div className="p-4 md:p-8 space-y-6">
+         {' '}
          {/* Enhanced header styling */}
-         <div className="relative pb-2 mb-6">
+         <div className="relative pb-2 mb-4 md:mb-6 mt-2 md:mt-0">
             <h1
-               className={`text-3xl md:text-4xl ${pacifico.className} text-gray-100 relative z-10`}
+               className={`text-2xl sm:text-3xl md:text-4xl ${pacifico.className} text-gray-100 relative z-10`}
             >
                Orders
             </h1>
-            <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#28B9F4] to-transparent w-32"></div>
+            <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#28B9F4] to-transparent w-24 md:w-32"></div>
             <div className="absolute -bottom-1 left-0 h-[3px] bg-gray-100 w-full"></div>
          </div>
          {/* Filter and Search Bar */}
          <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
             {/* Status Tabs - updated with cursor and hover effects */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                {['All', 'In Progress', 'Ready for Pickup', 'Completed'].map(
                   (tab) => (
                      <button
                         key={tab}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg text-center min-w-[120px] cursor-pointer transform transition-all duration-200 hover:shadow-md ${
+                        className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg text-center min-w-[90px] md:min-w-[120px] cursor-pointer transform transition-all duration-200 hover:shadow-md ${
                            activeTab === tab
                               ? 'bg-[#28B9F4] text-white hover:bg-[#1a9fd8]'
                               : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-[#28B9F4]'
-                        }`}
+                        } whitespace-nowrap flex-shrink-0`}
                         onClick={() => setActiveTab(tab)}
                      >
                         {tab}
@@ -165,14 +166,14 @@ export default function OrdersPage() {
                )}
             </div>
 
-            {/* Search Input - unchanged */}
+            {/* Search Input - with mobile optimizations */}
             <div className="relative w-full md:w-64">
                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiSearch className="text-gray-400" />
                </div>
                <input
                   type="text"
-                  className="pl-10 p-2 w-full border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                  className="pl-10 p-2 w-full border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#28B9F4] text-sm"
                   placeholder="Search order or customer..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -379,10 +380,11 @@ export default function OrdersPage() {
                className="fixed inset-0  z-50 flex justify-center items-center p-4"
                style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
             >
+               {' '}
                <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                   {/* Modal Header */}
-                  <div className="flex items-center justify-between p-4 md:p-6 border-b">
-                     <h3 className="text-xl md:text-2xl font-semibold text-gray-800">
+                  <div className="flex items-center justify-between p-4 md:p-6 border-b sticky top-0 bg-white z-10">
+                     <h3 className="text-lg md:text-2xl font-semibold text-gray-800">
                         Order #
                         {selectedOrder.id.substring(
                            selectedOrder.id.length - 5
@@ -415,14 +417,13 @@ export default function OrdersPage() {
                               <span>{selectedOrder.phone}</span>
                            </div>
                         )}
-                     </div>
-
+                     </div>{' '}
                      {/* Order Details */}
                      <div>
                         <h4 className="text-sm uppercase text-gray-900 mb-3">
                            Order Details
                         </h4>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
                               <p className="text-gray-500 text-sm">
                                  Drop-off Date
@@ -465,7 +466,6 @@ export default function OrdersPage() {
                            </div>
                         </div>
                      </div>
-
                      {/* Order Items */}
                      {selectedOrder.items && selectedOrder.items.length > 0 && (
                         <div>
@@ -526,7 +526,6 @@ export default function OrdersPage() {
                            </div>
                         </div>
                      )}
-
                      {/* Update Status */}
                      <div className="border-t pt-5">
                         <h4 className="text-sm uppercase text-gray-500 mb-3">
@@ -558,7 +557,6 @@ export default function OrdersPage() {
                            ))}
                         </div>
                      </div>
-
                      {/* Notes */}
                      {selectedOrder.notes && (
                         <div>

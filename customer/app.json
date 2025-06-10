@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "customer",
-    "slug": "customer",
+    "name": "Laundry Customer App",
+    "slug": "laundry-customer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

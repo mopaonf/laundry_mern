@@ -91,8 +91,8 @@ export default function RootLayoutClient({
                {/* Main content area */}
                <div className="flex-1 flex flex-col min-h-screen">
                   {/* Top bar */}{' '}
-                  <header className="flex items-center justify-between bg-white shadow rounded-b-3xl ml-10 px-8 py-5 mb-6 sticky top-0 z-20">
-                     <div className="text-lg font-semibold text-gray-800">
+                  <header className="flex items-center justify-between bg-white shadow rounded-b-3xl md:ml-10 px-4 md:px-8 py-4 md:py-5 mb-4 md:mb-6 sticky top-0 z-20">
+                     <div className="text-lg font-semibold text-gray-800 ml-8 md:ml-0">
                         Welcome,
                         <span className="text-[#28B9F4]"> {userName}!</span>
                      </div>
