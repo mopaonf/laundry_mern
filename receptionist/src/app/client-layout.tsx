@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Sidebar from './Sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const geistSans = Geist({
    variable: '--font-geist-sans',
@@ -26,7 +28,6 @@ export default function RootLayoutClient({
    const isLoginPage = pathname === '/login';
    const [isAuthorized, setIsAuthorized] = useState(true);
    const [userName, setUserName] = useState('Receptionist');
-
    useEffect(() => {
       // Skip authorization check for login page
       if (isLoginPage) return;
@@ -34,6 +35,7 @@ export default function RootLayoutClient({
       // Check user role
       const userRole = localStorage.getItem('user_role');
       const authToken = localStorage.getItem('auth_token');
+      const storedName = localStorage.getItem('user_name');
 
       if (!authToken) {
          // If no token, redirect to login
@@ -42,19 +44,24 @@ export default function RootLayoutClient({
       }
 
       // Only receptionist and admin roles are allowed
-      if (userRole !== 'receptionist' && userRole !== 'admin') {
+      const isAllowedRole = userRole === 'receptionist' || userRole === 'admin';
+
+      if (!isAllowedRole) {
          setIsAuthorized(false);
          // Redirect to login with a brief delay to allow for message to be seen
-         setTimeout(() => router.push('/login'), 3000);
-      } else {
-         setIsAuthorized(true);
-         // Get user name from localStorage if available
-         const storedName = localStorage.getItem('user_name');
-         if (storedName) {
-            setUserName(storedName);
-         }
+         const timer = setTimeout(() => router.push('/login'), 3000);
+         return () => clearTimeout(timer); // Cleanup timeout on unmount
       }
-   }, [isLoginPage, router]);
+
+      if (!isAuthorized) {
+         setIsAuthorized(true);
+      }
+
+      // Set user name only if needed
+      if (storedName && storedName !== userName) {
+         setUserName(storedName);
+      }
+   }, [isLoginPage, router, isAuthorized, userName]);
    return (
       <body
          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white min-h-screen`}
@@ -83,20 +90,33 @@ export default function RootLayoutClient({
                <Sidebar />
                {/* Main content area */}
                <div className="flex-1 flex flex-col min-h-screen">
-                  {/* Top bar */}
+                  {/* Top bar */}{' '}
                   <header className="flex items-center justify-between bg-white shadow rounded-b-3xl ml-10 px-8 py-5 mb-6 sticky top-0 z-20">
-                     {' '}
                      <div className="text-lg font-semibold text-gray-800">
-                        Welcome,{' '}
-                        <span className="text-[#28B9F4]">{userName}!</span>
-                     </div>{' '}
+                        Welcome,
+                        <span className="text-[#28B9F4]"> {userName}!</span>
+                     </div>
                      <div className="flex items-center gap-4">
+                        {' '}
                         <button
                            onClick={() => {
                               if (typeof window !== 'undefined') {
+                                 // First clear storage
                                  localStorage.removeItem('auth_token');
                                  localStorage.removeItem('user_role');
                                  localStorage.removeItem('user_name');
+
+                                 // Show toast notification
+                                 toast.success('Logged out successfully', {
+                                    icon: '👋',
+                                    style: {
+                                       borderRadius: '10px',
+                                       background: '#f0f9ff',
+                                       color: '#0369a1',
+                                    },
+                                 });
+
+                                 // Navigate immediately rather than with a timeout
                                  router.push('/login');
                               }
                            }}
@@ -112,9 +132,26 @@ export default function RootLayoutClient({
                            className="w-10 h-10 rounded-full shadow object-cover border-2 border-[#28B9F4]"
                            priority
                         />
-                     </div>
+                     </div>{' '}
                   </header>
                   <main className="flex-1 px-4 md:px-8 pb-8">{children}</main>
+                  {/* Toast container */}
+                  <Toaster
+                     position="top-right"
+                     toastOptions={{
+                        duration: 4000,
+                        style: {
+                           background: '#fff',
+                           color: '#333',
+                        },
+                        success: {
+                           iconTheme: {
+                              primary: '#28B9F4',
+                              secondary: '#fff',
+                           },
+                        },
+                     }}
+                  />
                </div>
             </div>
          )}

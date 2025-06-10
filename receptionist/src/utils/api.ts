@@ -10,7 +10,7 @@ const API_BASE =
  * @param options The fetch options
  * @returns The fetch response parsed as JSON
  */
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+export async function apiRequest(endpoint: string, options: any = {}) {
    try {
       // Ensure the endpoint doesn't start with a slash
       const cleanEndpoint = endpoint.startsWith('/')
@@ -38,11 +38,22 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
          ...(options.headers || {}),
       };
 
-      // Make the request
-      const response = await fetch(url, {
-         ...options,
+      // Extract 'data' property from options to handle as JSON body
+      const { data, ...fetchOptions } = options;
+
+      // Prepare request options
+      const requestOptions: RequestInit = {
+         ...fetchOptions,
          headers,
-      });
+      };
+
+      // Add body if data is present for methods like POST, PUT, PATCH
+      if (data) {
+         requestOptions.body = JSON.stringify(data);
+      }
+
+      // Make the request
+      const response = await fetch(url, requestOptions);
 
       // Handle HTTP errors
       if (!response.ok) {

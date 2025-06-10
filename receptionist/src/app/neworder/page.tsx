@@ -9,26 +9,30 @@ import {
    FiSave,
    FiFileText,
    FiSearch,
+   FiLoader,
 } from 'react-icons/fi';
+import { fetchCustomers } from '../../store/customers';
+import { fetchInventoryItems, InventoryItem } from '../../store/inventory';
+import toast from 'react-hot-toast';
 
-// Sample data - in a real app, this would come from an API
-const CUSTOMERS = [
-   { id: 1, name: 'John Doe' },
-   { id: 2, name: 'Jane Smith' },
-   { id: 3, name: 'Robert Johnson' },
-   { id: 4, name: 'Emily Davis' },
-];
-
-const LAUNDRY_ITEMS = [
-   { id: 1, name: 'Shirt', price: 1500 },
-   { id: 2, name: 'Pants', price: 2000 },
-   { id: 3, name: 'Dress', price: 3500 },
-   { id: 4, name: 'Suit', price: 5000 },
-   { id: 5, name: 'Blanket', price: 4000 },
-];
+// Customer interface
+interface Customer {
+   _id: string;
+   id?: string; // For frontend compatibility
+   name: string;
+   email: string;
+   phone: string;
+   address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+      country?: string;
+   };
+}
 
 interface OrderItem {
-   id: number;
+   id: string;
    name: string;
    price: number;
    quantity: number;
@@ -42,12 +46,82 @@ export default function NewOrderPage() {
    const [pickupDate, setPickupDate] = useState<string>('');
    const [notes, setNotes] = useState<string>('');
 
-   // New states for item search
+   // Loading states
+   const [isLoadingCustomers, setIsLoadingCustomers] = useState<boolean>(false);
+   const [isLoadingItems, setIsLoadingItems] = useState<boolean>(false);
+   const [error, setError] = useState<string | null>(null);
+
+   // Data states
+   const [customers, setCustomers] = useState<Customer[]>([]);
+   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+
+   // Item search states
    const [searchTerm, setSearchTerm] = useState<string>('');
    const [isSearching, setIsSearching] = useState<boolean>(false);
-   const [filteredItems, setFilteredItems] = useState<typeof LAUNDRY_ITEMS>([]);
+   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
    const searchInputRef = useRef<HTMLInputElement>(null);
    const searchResultsRef = useRef<HTMLDivElement>(null);
+
+   // New customer search states
+   const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
+   const [isCustomerSearching, setIsCustomerSearching] =
+      useState<boolean>(false);
+   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+      null
+   );
+   const customerSearchInputRef = useRef<HTMLInputElement>(null);
+   const customerSearchResultsRef = useRef<HTMLDivElement>(null); // Fetch customers and inventory items on component mount
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            setIsLoadingCustomers(true);
+            setIsLoadingItems(true);
+            setError(null); // Fetch customers
+            const customersData = await fetchCustomers();
+            setCustomers(customersData);
+
+            // Fetch inventory items
+            const itemsData = await fetchInventoryItems();
+            setInventoryItems(itemsData);
+
+            // Show success toast if both loaded successfully
+            toast.success('Data loaded successfully', {
+               icon: '📋',
+               duration: 2000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#effff8',
+                  color: '#1d7a4c',
+               },
+            });
+         } catch (err) {
+            console.error('Error fetching data:', err);
+            const errorMessage =
+               err instanceof Error
+                  ? err.message
+                  : 'An error occurred while fetching data';
+
+            setError(errorMessage);
+
+            // Show toast notification for error
+            toast.error(`Error loading data: ${errorMessage}`, {
+               icon: '⚠️',
+               duration: 5000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#fff1f0',
+                  color: '#d9363e',
+               },
+            });
+         } finally {
+            setIsLoadingCustomers(false);
+            setIsLoadingItems(false);
+         }
+      };
+
+      fetchData();
+   }, []);
 
    // Filter items when search term changes
    useEffect(() => {
@@ -56,11 +130,24 @@ export default function NewOrderPage() {
          return;
       }
 
-      const filtered = LAUNDRY_ITEMS.filter((item) =>
+      const filtered = inventoryItems.filter((item) =>
          item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredItems(filtered);
-   }, [searchTerm]);
+   }, [searchTerm, inventoryItems]);
+
+   // Filter customers when search term changes
+   useEffect(() => {
+      if (customerSearchTerm.trim() === '') {
+         setFilteredCustomers([]);
+         return;
+      }
+
+      const filtered = customers.filter((customer) =>
+         customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase())
+      );
+      setFilteredCustomers(filtered);
+   }, [customerSearchTerm, customers]);
 
    // Handle click outside search results
    useEffect(() => {
@@ -73,6 +160,16 @@ export default function NewOrderPage() {
          ) {
             setIsSearching(false);
          }
+
+         // Handle customer search click outside
+         if (
+            customerSearchResultsRef.current &&
+            !customerSearchResultsRef.current.contains(event.target as Node) &&
+            customerSearchInputRef.current &&
+            !customerSearchInputRef.current.contains(event.target as Node)
+         ) {
+            setIsCustomerSearching(false);
+         }
       };
 
       document.addEventListener('mousedown', handleClickOutside);
@@ -80,44 +177,115 @@ export default function NewOrderPage() {
          document.removeEventListener('mousedown', handleClickOutside);
       };
    }, []);
+   const selectCustomer = (customer: Customer) => {
+      setCustomerId(customer._id);
+      setSelectedCustomer(customer);
+      setCustomerSearchTerm(customer.name);
+      setIsCustomerSearching(false);
 
-   const selectItem = (item: (typeof LAUNDRY_ITEMS)[0]) => {
-      setSelectedItemId(String(item.id));
+      // Show toast notification for customer selection
+      toast.success(`Customer selected: ${customer.name}`, {
+         icon: '👤',
+         duration: 2000,
+         style: {
+            borderRadius: '10px',
+            background: '#f0f9ff',
+            color: '#0369a1',
+         },
+      });
+   };
+
+   const selectItem = (item: InventoryItem) => {
+      setSelectedItemId(item._id);
       setSearchTerm(item.name);
       setIsSearching(false);
    };
-
    const addItem = () => {
       if (!selectedItemId) return;
 
-      const itemToAdd = LAUNDRY_ITEMS.find(
-         (item) => item.id === parseInt(selectedItemId)
+      const itemToAdd = inventoryItems.find(
+         (item) => item._id === selectedItemId
       );
       if (!itemToAdd) return;
 
-      const existingItem = orderItems.find((item) => item.id === itemToAdd.id);
+      const existingItem = orderItems.find((item) => item.id === itemToAdd._id);
+      const itemPrice = itemToAdd.price ?? itemToAdd.basePrice;
 
       if (existingItem) {
          // Update quantity if item already exists
          setOrderItems(
             orderItems.map((item) =>
-               item.id === itemToAdd.id
+               item.id === itemToAdd._id
                   ? { ...item, quantity: item.quantity + quantity }
                   : item
             )
          );
+
+         // Show toast for updated quantity
+         toast.success(
+            `Updated: ${quantity} more ${itemToAdd.name}${
+               quantity > 1 ? 's' : ''
+            } added`,
+            {
+               icon: '🔄',
+               duration: 2000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#f0f9ff',
+                  color: '#0369a1',
+               },
+            }
+         );
       } else {
          // Add new item
-         setOrderItems([...orderItems, { ...itemToAdd, quantity }]);
+         setOrderItems([
+            ...orderItems,
+            {
+               id: itemToAdd._id,
+               name: itemToAdd.name,
+               price: itemPrice,
+               quantity,
+            },
+         ]);
+
+         // Show toast for new item
+         toast.success(
+            `Added: ${quantity} ${itemToAdd.name}${quantity > 1 ? 's' : ''}`,
+            {
+               icon: '✅',
+               duration: 2000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#effff8',
+                  color: '#1d7a4c',
+               },
+            }
+         );
       }
 
       // Reset selection
       setSelectedItemId('');
       setQuantity(1);
    };
+   const removeItem = (id: string) => {
+      // Find the item before removing it to get its name
+      const itemToRemove = orderItems.find((item) => item.id === id);
 
-   const removeItem = (id: number) => {
-      setOrderItems(orderItems.filter((item) => item.id !== id));
+      if (itemToRemove) {
+         // Remove the item
+         setOrderItems(orderItems.filter((item) => item.id !== id));
+
+         // Show toast notification
+         toast.success(`Removed: ${itemToRemove.name}`, {
+            icon: '🗑️',
+            duration: 2000,
+            style: {
+               borderRadius: '10px',
+               background: '#fff5f5',
+               color: '#e53e3e',
+            },
+         });
+      }
    };
 
    const calculateTotal = () => {
@@ -126,8 +294,7 @@ export default function NewOrderPage() {
          0
       );
    };
-
-   const handleSubmit = (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       // In a real app, you would send this data to your backend
@@ -138,9 +305,69 @@ export default function NewOrderPage() {
          notes,
          total: calculateTotal(),
       };
-
       console.log('Submitting order:', orderData);
-      // Call API endpoint here
+
+      try {
+         // Call API endpoint here
+         const response = await fetch('http://localhost:5000/api/orders', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json',
+               // Add authorization if needed
+               ...(typeof window !== 'undefined' &&
+               localStorage.getItem('auth_token')
+                  ? {
+                       Authorization: `Bearer ${localStorage.getItem(
+                          'auth_token'
+                       )}`,
+                    }
+                  : {}),
+            },
+            body: JSON.stringify(orderData),
+         });
+
+         if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to create order: ${errorText}`);
+         }
+         const result = await response.json();
+         console.log('Order created successfully:', result);
+
+         // Show success toast
+         toast.success('Order created successfully!', {
+            icon: '🧺',
+            style: {
+               borderRadius: '10px',
+               background: '#effff8',
+               color: '#1d7a4c',
+            },
+         });
+
+         // Reset form
+         setCustomerId('');
+         setSelectedCustomer(null);
+         setOrderItems([]);
+         setPickupDate('');
+         setNotes('');
+         setCustomerSearchTerm('');
+      } catch (error) {
+         console.error('Error creating order:', error);
+         // Show error toast
+         toast.error(
+            `Error creating order: ${
+               error instanceof Error ? error.message : 'Unknown error'
+            }`,
+            {
+               icon: '❌',
+               duration: 6000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#fff1f0',
+                  color: '#d9363e',
+               },
+            }
+         );
+      }
 
       // Reset form (optional)
       // setCustomerId("");
@@ -163,30 +390,107 @@ export default function NewOrderPage() {
                   <h2 className="text-xl font-semibold text-gray-800">
                      Customer Information
                   </h2>
-               </div>
-
+               </div>{' '}
+               {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                     <p>Error: {error}</p>
+                  </div>
+               )}
                <div className="mb-4">
                   <label
-                     htmlFor="customer"
+                     htmlFor="customerSearch"
                      className="block text-gray-700 mb-2"
                   >
                      Select Customer
                   </label>
-                  <select
-                     id="customer"
-                     className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4] text-gray-700"
-                     value={customerId}
-                     onChange={(e) => setCustomerId(e.target.value)}
-                     required
-                  >
-                     <option value="">-- Select a customer --</option>
-                     {CUSTOMERS.map((customer) => (
-                        <option key={customer.id} value={customer.id}>
-                           {customer.name}
-                        </option>
-                     ))}
-                  </select>
-               </div>
+                  <div className="relative">
+                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        {isLoadingCustomers ? (
+                           <FiLoader className="text-gray-400 animate-spin" />
+                        ) : (
+                           <FiSearch className="text-gray-400" />
+                        )}
+                     </div>
+                     <input
+                        ref={customerSearchInputRef}
+                        type="text"
+                        id="customerSearch"
+                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4] text-gray-700"
+                        placeholder={
+                           isLoadingCustomers
+                              ? 'Loading customers...'
+                              : 'Search for a customer...'
+                        }
+                        value={customerSearchTerm}
+                        onChange={(e) => {
+                           setCustomerSearchTerm(e.target.value);
+                           setIsCustomerSearching(true);
+                           if (e.target.value.trim() === '') {
+                              setCustomerId('');
+                              setSelectedCustomer(null);
+                           }
+                        }}
+                        onFocus={() => setIsCustomerSearching(true)}
+                        disabled={isLoadingCustomers}
+                     />
+                  </div>
+
+                  {/* Customer Search Results Dropdown */}
+                  {isCustomerSearching && filteredCustomers.length > 0 && (
+                     <div
+                        ref={customerSearchResultsRef}
+                        className="absolute z-10 mt-1 w-full max-w-[calc(100%-2rem)] bg-white shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-none sm:text-sm"
+                     >
+                        {filteredCustomers.map((customer) => (
+                           <div
+                              key={customer._id}
+                              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 text-gray-700 transition-colors duration-150"
+                              onClick={() => selectCustomer(customer)}
+                           >
+                              <div className="flex items-center">
+                                 <span>{customer.name}</span>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  )}
+
+                  {isCustomerSearching &&
+                     customerSearchTerm.trim() !== '' &&
+                     filteredCustomers.length === 0 && (
+                        <div className="absolute z-10 mt-1 w-full max-w-[calc(100%-2rem)] bg-white shadow-lg rounded-md py-2 px-3 text-gray-500">
+                           No customers found
+                        </div>
+                     )}
+               </div>{' '}
+               {selectedCustomer && (
+                  <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                     <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-[#28B9F4] text-white flex items-center justify-center">
+                           <FiUser size={18} />
+                        </div>
+                        <div className="ml-3">
+                           <p className="font-medium text-gray-800">
+                              {selectedCustomer.name}
+                           </p>
+                           <p className="text-sm text-gray-500">
+                              {selectedCustomer.phone}
+                           </p>
+                           {selectedCustomer.address && (
+                              <p className="text-xs text-gray-500">
+                                 {[
+                                    selectedCustomer.address.street,
+                                    selectedCustomer.address.city,
+                                    selectedCustomer.address.state,
+                                 ]
+                                    .filter(Boolean)
+                                    .join(', ')}
+                              </p>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+               )}
             </div>
 
             {/* Item Selection */}
@@ -205,17 +509,25 @@ export default function NewOrderPage() {
                         className="block text-gray-700 mb-2"
                      >
                         Search Item
-                     </label>
+                     </label>{' '}
                      <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                           <FiSearch className="text-gray-400" />
+                           {isLoadingItems ? (
+                              <FiLoader className="text-gray-400 animate-spin" />
+                           ) : (
+                              <FiSearch className="text-gray-400" />
+                           )}
                         </div>
                         <input
                            ref={searchInputRef}
                            type="text"
                            id="itemSearch"
                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4] text-gray-700"
-                           placeholder="Type to search for items..."
+                           placeholder={
+                              isLoadingItems
+                                 ? 'Loading items...'
+                                 : 'Type to search for items...'
+                           }
                            value={searchTerm}
                            onChange={(e) => {
                               setSearchTerm(e.target.value);
@@ -225,9 +537,9 @@ export default function NewOrderPage() {
                               }
                            }}
                            onFocus={() => setIsSearching(true)}
+                           disabled={isLoadingItems}
                         />
                      </div>
-
                      {/* Search Results Dropdown */}
                      {isSearching && filteredItems.length > 0 && (
                         <div
@@ -236,21 +548,23 @@ export default function NewOrderPage() {
                         >
                            {filteredItems.map((item) => (
                               <div
-                                 key={item.id}
+                                 key={item._id}
                                  className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 text-gray-700 transition-colors duration-150"
                                  onClick={() => selectItem(item)}
                               >
                                  <div className="flex items-center justify-between">
                                     <span>{item.name}</span>
                                     <span className="text-[#28B9F4] font-medium">
-                                       {item.price.toLocaleString()} FCFA
+                                       {(
+                                          item.price ?? item.basePrice
+                                       ).toLocaleString()}{' '}
+                                       FCFA
                                     </span>
                                  </div>
                               </div>
                            ))}
                         </div>
                      )}
-
                      {isSearching &&
                         searchTerm.trim() !== '' &&
                         filteredItems.length === 0 && (

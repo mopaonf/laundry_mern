@@ -1,6 +1,30 @@
 const InventoryItem = require('../models/InventoryItem');
 
 /**
+ * @desc    Get all inventory items
+ * @route   GET /api/inventory
+ * @access  Private
+ */
+exports.getAllItems = async (req, res) => {
+   try {
+      const items = await InventoryItem.find().sort({ category: 1, name: 1 });
+
+      res.status(200).json({
+         success: true,
+         count: items.length,
+         data: items,
+      });
+   } catch (error) {
+      res.status(500).json({
+         success: false,
+         message: 'Error fetching inventory items',
+         error:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+   }
+};
+
+/**
  * @desc    Bulk insert inventory items (seed data)
  * @route   POST /api/inventory/seed
  * @access  Admin

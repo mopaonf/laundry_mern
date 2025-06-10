@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginReceptionist } from '@/store/auth';
+import toast from 'react-hot-toast';
 
 export default function Login() {
    const router = useRouter();
@@ -42,6 +43,9 @@ export default function Login() {
 
       setIsLoading(true);
       try {
+         // Show loading toast
+         const loadingToast = toast.loading('Signing in...');
+
          const result = await loginReceptionist(email, password);
          localStorage.setItem('auth_token', result.token);
          localStorage.setItem('user_role', result.role);
@@ -49,10 +53,24 @@ export default function Login() {
 
          // Only allow receptionist and admin roles to access the dashboard
          if (result.role !== 'receptionist' && result.role !== 'admin') {
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+
             throw new Error(
                'Access denied: Only receptionists and admins can access this dashboard'
             );
          }
+
+         // Dismiss loading toast and show success toast
+         toast.dismiss(loadingToast);
+         toast.success(`Welcome, ${result.name}!`, {
+            icon: '👋',
+            style: {
+               borderRadius: '10px',
+               background: '#effff8',
+               color: '#1d7a4c',
+            },
+         });
 
          router.push('/');
       } catch (err: Error | unknown) {
@@ -61,6 +79,17 @@ export default function Login() {
                ? err.message
                : 'Login failed. Please check your credentials.';
          setError(errorMessage);
+
+         // Show error toast
+         toast.error(errorMessage, {
+            icon: '🔒',
+            duration: 5000,
+            style: {
+               borderRadius: '10px',
+               background: '#fff1f0',
+               color: '#d9363e',
+            },
+         });
       } finally {
          setIsLoading(false);
       }
