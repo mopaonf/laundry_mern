@@ -12,7 +12,7 @@ import {
 import { Pacifico } from 'next/font/google';
 import { useEffect } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { useAppToast } from '../hooks/useAppToast';
+// Remove unused useAppToast import
 
 const pacifico = Pacifico({
    weight: '400',

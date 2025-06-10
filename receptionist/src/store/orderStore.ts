@@ -46,10 +46,8 @@ export const useOrderStore = create<OrderStore>((set) => ({
       set({ isLoading: true, error: null });
       try {
          // Use the apiRequest utility which already handles auth tokens
-         const response = await apiRequest('orders');
-
-         // Handle different response formats from the backend
-         let ordersData: any[] = [];
+         const response = await apiRequest('orders'); // Handle different response formats from the backend
+         let ordersData: Record<string, unknown>[] = [];
 
          if (response && Array.isArray(response)) {
             ordersData = response;
@@ -64,30 +62,43 @@ export const useOrderStore = create<OrderStore>((set) => ({
          } else {
             console.log('Unexpected response format:', response);
             throw new Error('Invalid response format from API');
-         }
+         } // Transform the API response to match our Order type
+         const transformedOrders = ordersData.map(
+            (orderData: Record<string, unknown>) => {
+               // Type safety for customerId object
+               const customerId = orderData.customerId as
+                  | {
+                       _id?: string;
+                       name?: string;
+                       phone?: string;
+                       email?: string;
+                    }
+                  | undefined;
 
-         // Transform the API response to match our Order type
-         const transformedOrders = ordersData.map((order: any) => ({
-            id: order._id,
-            _id: order._id,
-            // If customerId is an object with name property, use that, otherwise use a default
-            customer: order.customerId?.name || 'Unknown Customer',
-            phone: order.customerId?.phone || '',
-            status: order.status || 'In Progress',
-            // Use createdAt as dropOffDate if not available
-            dropOffDate: order.createdAt,
-            createdAt: order.createdAt,
-            pickupDate: order.pickupDate,
-            total:
-               typeof order.total === 'number'
-                  ? `FCFA ${order.total.toLocaleString()}`
-                  : order.total,
-            items: order.items,
-            notes: order.notes,
-         }));
+               return {
+                  id: orderData._id as string,
+                  _id: orderData._id as string,
+                  // If customerId is an object with name property, use that, otherwise use a default
+                  customer: customerId?.name || 'Unknown Customer',
+                  customerId: customerId as Order['customerId'],
+                  phone: customerId?.phone || '',
+                  status: (orderData.status as string) || 'In Progress',
+                  // Use createdAt as dropOffDate if not available
+                  dropOffDate: orderData.createdAt as string,
+                  createdAt: orderData.createdAt as string,
+                  pickupDate: orderData.pickupDate as string | undefined,
+                  total:
+                     typeof orderData.total === 'number'
+                        ? `FCFA ${orderData.total.toLocaleString()}`
+                        : (orderData.total as string | number),
+                  items: orderData.items as OrderItem[] | undefined,
+                  notes: orderData.notes as string | undefined,
+               };
+            }
+         );
 
          set({ orders: transformedOrders, isLoading: false });
-      } catch (error: any) {
+      } catch (error: unknown) {
          console.error('Error fetching orders:', error);
          set({
             isLoading: false,
@@ -121,7 +132,7 @@ export const useOrderStore = create<OrderStore>((set) => ({
          } else {
             throw new Error('Failed to update order status');
          }
-      } catch (error: any) {
+      } catch (error: unknown) {
          console.error('Error updating order status:', error);
          set({
             isLoading: false,

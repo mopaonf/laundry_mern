@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+// Remove unused Link import
 import {
    FiSearch,
    FiEye,
@@ -12,7 +12,7 @@ import {
    FiAlertCircle,
    FiRefreshCw,
    FiX,
-   FiCheckCircle,
+   // Remove unused FiCheckCircle import
 } from 'react-icons/fi';
 
 // Add Google Fonts import
@@ -375,7 +375,10 @@ export default function OrdersPage() {
          )}
          {/* Order Detail Modal */}
          {isModalOpen && selectedOrder && (
-            <div className="fixed inset-0  z-50 flex justify-center items-center p-4"  style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}>
+            <div
+               className="fixed inset-0  z-50 flex justify-center items-center p-4"
+               style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
+            >
                <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                   {/* Modal Header */}
                   <div className="flex items-center justify-between p-4 md:p-6 border-b">

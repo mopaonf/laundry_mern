@@ -61,7 +61,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
          }
 
          set({ stats: statsData, isLoading: false });
-      } catch (error: any) {
+      } catch (error: unknown) {
          console.error('Error fetching dashboard stats:', error);
          set({
             isLoading: false,

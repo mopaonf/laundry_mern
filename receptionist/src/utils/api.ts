@@ -10,7 +10,15 @@ const API_BASE =
  * @param options The fetch options
  * @returns The fetch response parsed as JSON
  */
-export async function apiRequest(endpoint: string, options: any = {}) {
+interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
+   data?: Record<string, unknown>;
+   headers?: Record<string, string>;
+}
+
+export async function apiRequest(
+   endpoint: string,
+   options: ApiRequestOptions = {}
+) {
    try {
       // Ensure the endpoint doesn't start with a slash
       const cleanEndpoint = endpoint.startsWith('/')
