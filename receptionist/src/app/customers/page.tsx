@@ -13,7 +13,6 @@ import {
    FiUserPlus,
    FiX,
    FiHome,
-   FiMapPin,
 } from 'react-icons/fi';
 import { Customer, fetchCustomers, createCustomer } from '@/store/customers';
 import { Pacifico } from 'next/font/google';
@@ -36,7 +35,7 @@ export default function CustomersPage() {
    const [isSubmitting, setIsSubmitting] = useState(false);
 
    // Ref for form focus management
-   const nameInputRef = useRef<HTMLInputElement>(null);   // New customer form state
+   const nameInputRef = useRef<HTMLInputElement>(null); // New customer form state
    const [newCustomer, setNewCustomer] = useState({
       name: '',
       email: '',
@@ -44,7 +43,7 @@ export default function CustomersPage() {
       address: {
          street: '',
       },
-   });// Function to fetch customers that can be reused
+   }); // Function to fetch customers that can be reused
    const fetchCustomersData = async () => {
       try {
          setIsLoading(true);
@@ -110,7 +109,7 @@ export default function CustomersPage() {
          day: 'numeric',
       };
       return new Date(dateString).toLocaleDateString(undefined, options);
-   };   // Format address to display only the street address
+   }; // Format address to display only the street address
    const formatAddress = (address?: Customer['address']) => {
       if (!address || !address.street) return 'No address provided';
       return address.street;
@@ -188,7 +187,7 @@ export default function CustomersPage() {
             return;
          }
 
-         const result = await createCustomer(newCustomer);         // Reset form and close modal
+         const result = await createCustomer(newCustomer); // Reset form and close modal
          setNewCustomer({
             name: '',
             email: '',
@@ -466,7 +465,8 @@ export default function CustomersPage() {
                                  size={12}
                               />
                               {customer.email || 'No email provided'}
-                           </p>                        </div>
+                           </p>{' '}
+                        </div>
                      </div>
                      <div className="grid grid-cols-1 gap-2 pt-2">
                         <div className="text-sm text-gray-700 flex items-center">
@@ -560,7 +560,6 @@ export default function CustomersPage() {
                               aria-required="true"
                            />
                         </div>
-
                         <div>
                            {' '}
                            <label
@@ -588,7 +587,6 @@ export default function CustomersPage() {
                               />
                            </div>
                         </div>
-
                         <div>
                            {' '}
                            <label
@@ -615,7 +613,8 @@ export default function CustomersPage() {
                                  aria-required="false"
                               />
                            </div>
-                        </div>                        {/* Address Fields */}
+                        </div>{' '}
+                        {/* Address Fields */}
                         <div className="mt-6">
                            <h3 className="text-md font-medium text-gray-700 mb-3 flex items-center">
                               <FiHome className="mr-2 text-[#28B9F4]" />
@@ -623,7 +622,10 @@ export default function CustomersPage() {
                            </h3>
 
                            <div>
-                              <label htmlFor="customer-address" className="block text-sm font-medium text-gray-700 mb-1">
+                              <label
+                                 htmlFor="customer-address"
+                                 className="block text-sm font-medium text-gray-700 mb-1"
+                              >
                                  Street Address
                               </label>
                               <input
