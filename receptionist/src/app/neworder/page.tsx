@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fi';
 import { fetchCustomers } from '../../store/customers';
 import { fetchInventoryItems, InventoryItem } from '../../store/inventory';
+import { apiRequest } from '../../utils/api';
 import toast from 'react-hot-toast';
 
 // Customer interface
@@ -306,32 +307,13 @@ export default function NewOrderPage() {
          total: calculateTotal(),
       };
       console.log('Submitting order:', orderData);
-
       try {
-         // Call API endpoint here
-         const response = await fetch('http://localhost:5000/api/orders/', {
+         // Call API endpoint using the apiRequest utility
+         const response = await apiRequest('orders', {
             method: 'POST',
-            headers: {
-               'Content-Type': 'application/json',
-               // Add authorization if needed
-               ...(typeof window !== 'undefined' &&
-               localStorage.getItem('auth_token')
-                  ? {
-                       Authorization: `Bearer ${localStorage.getItem(
-                          'auth_token'
-                       )}`,
-                    }
-                  : {}),
-            },
-            body: JSON.stringify(orderData),
+            data: orderData,
          });
-
-         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to create order: ${errorText}`);
-         }
-         const result = await response.json();
-         console.log('Order created successfully:', result);
+         console.log('Order created successfully:', response);
 
          // Show success toast
          toast.success('Order created successfully!', {

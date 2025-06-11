@@ -11,4 +11,12 @@ router.get(
    customerController.getAllCustomers
 );
 
+// POST /api/customers - Create a new customer (receptionist and admin only)
+router.post(
+   '/',
+   protect,
+   authorize('receptionist', 'admin'),
+   customerController.createCustomer
+);
+
 module.exports = router;

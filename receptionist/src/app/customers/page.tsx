@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
    FiSearch,
@@ -10,9 +10,14 @@ import {
    FiCalendar,
    FiEye,
    FiAlertCircle,
+   FiUserPlus,
+   FiX,
+   FiHome,
+   FiMapPin,
 } from 'react-icons/fi';
-import { Customer, fetchCustomers } from '@/store/customers';
+import { Customer, fetchCustomers, createCustomer } from '@/store/customers';
 import { Pacifico } from 'next/font/google';
+import toast from 'react-hot-toast';
 
 // Initialize the font
 const pacifico = Pacifico({
@@ -26,26 +31,63 @@ export default function CustomersPage() {
    const [searchQuery, setSearchQuery] = useState('');
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
+   // State for add customer modal
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
 
-   // Fetch customers on component mount
+   // Ref for form focus management
+   const nameInputRef = useRef<HTMLInputElement>(null);   // New customer form state
+   const [newCustomer, setNewCustomer] = useState({
+      name: '',
+      email: '',
+      phone: '',
+      address: {
+         street: '',
+      },
+   });// Function to fetch customers that can be reused
+   const fetchCustomersData = async () => {
+      try {
+         setIsLoading(true);
+         setError(null);
+         const data = await fetchCustomers();
+         setCustomers(data);
+      } catch (err) {
+         console.error('Failed to fetch customers:', err);
+         setError(
+            err instanceof Error ? err.message : 'Failed to load customers'
+         );
+      } finally {
+         setIsLoading(false);
+      }
+   };
+
+   // Focus on name input when modal opens
    useEffect(() => {
-      const getCustomers = async () => {
-         try {
-            setIsLoading(true);
-            setError(null);
-            const data = await fetchCustomers();
-            setCustomers(data);
-         } catch (err) {
-            console.error('Failed to fetch customers:', err);
-            setError(
-               err instanceof Error ? err.message : 'Failed to load customers'
-            );
-         } finally {
-            setIsLoading(false);
+      if (isModalOpen && nameInputRef.current) {
+         // Small delay to ensure modal is fully rendered
+         setTimeout(() => {
+            nameInputRef.current?.focus();
+         }, 100);
+      }
+   }, [isModalOpen]);
+
+   // Handle Escape key press to close modal
+   useEffect(() => {
+      const handleEscapeKey = (e: KeyboardEvent) => {
+         if (e.key === 'Escape' && isModalOpen) {
+            setIsModalOpen(false);
          }
       };
 
-      getCustomers();
+      document.addEventListener('keydown', handleEscapeKey);
+      return () => {
+         document.removeEventListener('keydown', handleEscapeKey);
+      };
+   }, [isModalOpen]);
+
+   // Fetch customers on component mount
+   useEffect(() => {
+      fetchCustomersData();
    }, []);
 
    // Filter customers based on search query
@@ -68,15 +110,161 @@ export default function CustomersPage() {
          day: 'numeric',
       };
       return new Date(dateString).toLocaleDateString(undefined, options);
+   };   // Format address to display only the street address
+   const formatAddress = (address?: Customer['address']) => {
+      if (!address || !address.street) return 'No address provided';
+      return address.street;
    };
 
-   // Format address to display in a compact way
-   const formatAddress = (address?: Customer['address']) => {
-      if (!address) return 'No address provided';
+   // Handle input changes for new customer form
+   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
 
-      const { city, state, country } = address;
-      const parts = [city, state, country].filter(Boolean);
-      return parts.length > 0 ? parts.join(', ') : 'No address provided';
+      // Handle nested address fields
+      if (name.startsWith('address.')) {
+         const addressField = name.split('.')[1];
+         setNewCustomer((prev) => ({
+            ...prev,
+            address: {
+               ...prev.address,
+               [addressField]: value,
+            },
+         }));
+      } else {
+         setNewCustomer((prev) => ({
+            ...prev,
+            [name]: value,
+         }));
+      }
+   }; // Submit handler for adding new customer
+   const handleAddCustomer = async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      try {
+         setIsSubmitting(true);
+
+         // Validate required fields
+         if (!newCustomer.name || !newCustomer.phone) {
+            toast.error('Name and phone are required fields');
+            setIsSubmitting(false);
+            return;
+         }
+
+         // Validate email format if provided
+         if (
+            newCustomer.email &&
+            !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(
+               newCustomer.email
+            )
+         ) {
+            toast.error('Please enter a valid email address');
+            setIsSubmitting(false);
+            return;
+         }
+
+         // Validate phone number format (basic validation)
+         if (!/^[0-9+\-\s()]{6,20}$/.test(newCustomer.phone)) {
+            toast.error('Please enter a valid phone number');
+            setIsSubmitting(false);
+            return;
+         }
+
+         // Validate email format if provided
+         if (
+            newCustomer.email &&
+            !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(
+               newCustomer.email
+            )
+         ) {
+            toast.error('Please enter a valid email address');
+            setIsSubmitting(false);
+            return;
+         }
+
+         // Validate phone number format (basic validation)
+         if (!/^[0-9+\-\s()]{6,20}$/.test(newCustomer.phone)) {
+            toast.error('Please enter a valid phone number');
+            setIsSubmitting(false);
+            return;
+         }
+
+         const result = await createCustomer(newCustomer);         // Reset form and close modal
+         setNewCustomer({
+            name: '',
+            email: '',
+            phone: '',
+            address: {
+               street: '',
+            },
+         });
+
+         setIsModalOpen(false);
+         // Refresh the customer list to include the new customer
+         await fetchCustomersData();
+         // Success notification with more details
+         toast.success(
+            `${result.name} added successfully! You can now create orders for this customer.`,
+            {
+               duration: 5000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#effff8',
+                  color: '#1d7a4c',
+                  padding: '16px',
+               },
+               icon: '👤',
+            }
+         );
+      } catch (err) {
+         console.error('Failed to add customer:', err);
+
+         // Extract specific error message if available
+         let errorMessage = 'Unknown error';
+         if (err instanceof Error) {
+            errorMessage = err.message;
+         } else if (
+            typeof err === 'object' &&
+            err !== null &&
+            'message' in err
+         ) {
+            errorMessage = String(err.message);
+         }
+
+         // Show error toast with more helpful message
+         if (errorMessage.includes('email already exists')) {
+            toast.error(
+               'A customer with this email already exists. Please use a different email.',
+               {
+                  duration: 5000,
+                  style: {
+                     borderRadius: '10px',
+                     background: '#fff1f0',
+                     color: '#d9363e',
+                  },
+               }
+            );
+         } else if (errorMessage.includes('phone number already exists')) {
+            toast.error('A customer with this phone number already exists.', {
+               duration: 5000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#fff1f0',
+                  color: '#d9363e',
+               },
+            });
+         } else {
+            toast.error(`Failed to add customer: ${errorMessage}`, {
+               duration: 5000,
+               style: {
+                  borderRadius: '10px',
+                  background: '#fff1f0',
+                  color: '#d9363e',
+               },
+            });
+         }
+      } finally {
+         setIsSubmitting(false);
+      }
    };
 
    // Loading state
@@ -118,21 +306,32 @@ export default function CustomersPage() {
                Customers
             </h1>
             <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#28B9F4] to-transparent w-32"></div>
-            <div className="absolute -bottom-1 left-0 h-[3px] bg-gray-100 w-full"></div>
+            <div className="absolute -bottom-1 left-0 h-[3px] bg-gray-100 w-full"></div>{' '}
          </div>
 
-         {/* Search Bar */}
-         <div className="relative max-w-md mx-auto md:mx-0">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-               <FiSearch className="text-gray-400" size={18} />
+         {/* Search Bar and Add Customer Button */}
+         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div className="relative max-w-md w-full">
+               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="text-gray-400" size={18} />
+               </div>
+               <input
+                  type="text"
+                  className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#28B9F4] focus:border-gray-100 transition-colors"
+                  placeholder="Search by name, phone or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+               />
             </div>
-            <input
-               type="text"
-               className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#28B9F4] focus:border-gray-100 transition-colors"
-               placeholder="Search by name, phone or email..."
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            {/* Add Customer Button */}
+            <button
+               onClick={() => setIsModalOpen(true)}
+               className="px-4 py-3 bg-[#28B9F4] text-white rounded-lg hover:bg-[#1a9fd8] transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#28B9F4] focus:ring-offset-2"
+               disabled={isSubmitting || isLoading}
+            >
+               <FiUserPlus className="mr-2" size={18} />
+               Add New Customer
+            </button>
          </div>
 
          {/* Customers Table - Desktop View */}
@@ -267,14 +466,16 @@ export default function CustomersPage() {
                                  size={12}
                               />
                               {customer.email || 'No email provided'}
-                           </p>
-                        </div>
+                           </p>                        </div>
                      </div>
-
                      <div className="grid grid-cols-1 gap-2 pt-2">
                         <div className="text-sm text-gray-700 flex items-center">
                            <FiPhone className="mr-2 text-gray-400" size={14} />
                            <span>{customer.phone}</span>
+                        </div>
+                        <div className="text-sm text-gray-700 flex items-center">
+                           <FiHome className="mr-2 text-gray-400" size={14} />
+                           <span>{formatAddress(customer.address)}</span>
                         </div>
                         <div className="text-sm text-gray-700 flex items-center">
                            <FiCalendar
@@ -301,6 +502,173 @@ export default function CustomersPage() {
                </div>
             )}
          </div>
+         {/* Add Customer Modal */}
+         {isModalOpen && (
+            <div
+               className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+               onClick={(e) => {
+                  // Close modal when clicking outside
+                  if (e.target === e.currentTarget) {
+                     setIsModalOpen(false);
+                  }
+               }}
+            >
+               <div
+                  className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto"
+                  role="dialog"
+                  aria-labelledby="modal-title"
+                  aria-modal="true"
+               >
+                  <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                     <h2
+                        id="modal-title"
+                        className="text-xl font-semibold text-gray-800 flex items-center"
+                     >
+                        <FiUserPlus className="mr-2 text-[#28B9F4]" />
+                        Add New Customer
+                     </h2>
+                     <button
+                        onClick={() => setIsModalOpen(false)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label="Close modal"
+                     >
+                        <FiX size={24} />
+                     </button>
+                  </div>
+
+                  <form onSubmit={handleAddCustomer} className="p-6">
+                     <div className="space-y-4">
+                        {/* Basic Information */}
+                        <div>
+                           {' '}
+                           <label
+                              htmlFor="customer-name"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                           >
+                              Name <span className="text-red-500">*</span>
+                           </label>
+                           <input
+                              id="customer-name"
+                              type="text"
+                              name="name"
+                              value={newCustomer.name}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                              placeholder="Full Name"
+                              ref={nameInputRef}
+                              aria-required="true"
+                           />
+                        </div>
+
+                        <div>
+                           {' '}
+                           <label
+                              htmlFor="customer-phone"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                           >
+                              Phone <span className="text-red-500">*</span>
+                           </label>
+                           <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                 <FiPhone className="text-gray-400" />
+                              </div>
+                              <input
+                                 id="customer-phone"
+                                 type="tel"
+                                 name="phone"
+                                 value={newCustomer.phone}
+                                 onChange={handleInputChange}
+                                 required
+                                 className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                                 placeholder="Phone Number"
+                                 aria-required="true"
+                                 pattern="[0-9+\-\s()]{6,20}"
+                                 title="Phone number should be between 6-20 characters and can contain numbers, spaces, and +()-"
+                              />
+                           </div>
+                        </div>
+
+                        <div>
+                           {' '}
+                           <label
+                              htmlFor="customer-email"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                           >
+                              Email{' '}
+                              <span className="text-gray-400 text-xs font-normal">
+                                 (Optional)
+                              </span>
+                           </label>
+                           <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                 <FiMail className="text-gray-400" />
+                              </div>
+                              <input
+                                 id="customer-email"
+                                 type="email"
+                                 name="email"
+                                 value={newCustomer.email}
+                                 onChange={handleInputChange}
+                                 className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                                 placeholder="Email Address"
+                                 aria-required="false"
+                              />
+                           </div>
+                        </div>                        {/* Address Fields */}
+                        <div className="mt-6">
+                           <h3 className="text-md font-medium text-gray-700 mb-3 flex items-center">
+                              <FiHome className="mr-2 text-[#28B9F4]" />
+                              Address Details (Optional)
+                           </h3>
+
+                           <div>
+                              <label htmlFor="customer-address" className="block text-sm font-medium text-gray-700 mb-1">
+                                 Street Address
+                              </label>
+                              <input
+                                 id="customer-address"
+                                 type="text"
+                                 name="address.street"
+                                 value={newCustomer.address.street}
+                                 onChange={handleInputChange}
+                                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                                 placeholder="Enter complete street address"
+                              />
+                           </div>
+                        </div>
+                     </div>
+                     <div className="mt-8 flex justify-end space-x-3">
+                        <button
+                           type="button"
+                           onClick={() => setIsModalOpen(false)}
+                           className="px-5 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 font-medium"
+                           disabled={isSubmitting}
+                        >
+                           Cancel
+                        </button>
+                        <button
+                           type="submit"
+                           disabled={isSubmitting}
+                           className="px-5 py-2.5 bg-[#28B9F4] text-white rounded-lg hover:bg-[#1a9fd8] transition-all duration-200 disabled:opacity-50 flex items-center shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-[#28B9F4] focus:ring-offset-2 font-medium"
+                        >
+                           {isSubmitting ? (
+                              <>
+                                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                 <span>Saving...</span>
+                              </>
+                           ) : (
+                              <>
+                                 <FiUserPlus className="mr-2" />
+                                 <span>Add Customer</span>
+                              </>
+                           )}
+                        </button>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         )}
       </div>
    );
 }

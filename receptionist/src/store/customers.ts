@@ -44,3 +44,32 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
       throw new Error(errorMessage);
    }
 };
+
+/**
+ * Creates a new customer
+ * @param customerData The customer data to create
+ * @returns The created customer
+ */
+export const createCustomer = async (
+   customerData: Omit<Customer, '_id' | 'createdAt'>
+): Promise<Customer> => {
+   try {
+      const response = await apiRequest('customers', {
+         method: 'POST',
+         data: customerData,
+      });
+
+      if (response && response.success && response.data) {
+         return response.data;
+      } else if (response && !response.success) {
+         throw new Error(response.message || 'Failed to create customer');
+      } else {
+         return response;
+      }
+   } catch (error) {
+      console.error('Error creating customer:', error);
+      const errorMessage =
+         error instanceof Error ? error.message : 'Failed to create customer';
+      throw new Error(errorMessage);
+   }
+};
