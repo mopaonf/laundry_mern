@@ -505,7 +505,8 @@ export default function CustomersPage() {
          {/* Add Customer Modal */}
          {isModalOpen && (
             <div
-               className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+               className="fixed inset-0  z-50 flex items-center justify-center p-4"
+               style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
                onClick={(e) => {
                   // Close modal when clicking outside
                   if (e.target === e.currentTarget) {
@@ -554,7 +555,7 @@ export default function CustomersPage() {
                               value={newCustomer.name}
                               onChange={handleInputChange}
                               required
-                              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                              className="w-full p-3 border text-gray-700 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
                               placeholder="Full Name"
                               ref={nameInputRef}
                               aria-required="true"
@@ -579,7 +580,7 @@ export default function CustomersPage() {
                                  value={newCustomer.phone}
                                  onChange={handleInputChange}
                                  required
-                                 className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                                 className="w-full pl-10 p-3 border text-gray-700 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
                                  placeholder="Phone Number"
                                  aria-required="true"
                                  pattern="[0-9+\-\s()]{6,20}"
@@ -608,7 +609,7 @@ export default function CustomersPage() {
                                  name="email"
                                  value={newCustomer.email}
                                  onChange={handleInputChange}
-                                 className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                                 className="w-full pl-10 p-3 border text-gray-700 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
                                  placeholder="Email Address"
                                  aria-required="false"
                               />
@@ -634,7 +635,7 @@ export default function CustomersPage() {
                                  name="address.street"
                                  value={newCustomer.address.street}
                                  onChange={handleInputChange}
-                                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
+                                 className="w-full p-3 border text-gray-700 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#28B9F4]"
                                  placeholder="Enter complete street address"
                               />
                            </div>
