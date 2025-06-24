@@ -16,6 +16,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useWashBasket } from '@/components/WashBasketContext';
+import { useAuthStore } from '@/store/auth.store';
+import { ApiService } from '@/utils/api.service';
 
 // Types for the app data
 interface PromotionItem {
@@ -86,47 +88,66 @@ const categories: CategoryItem[] = [
       icon: 'curtains' as keyof typeof MaterialIcons.glyphMap,
       route: '/categorycards/curtains',
    },
-];
-
-// Sample products data
-const products: ProductItem[] = [
-   {
-      id: '1',
-      name: 'T-Shirt',
-      price: '1,500 FCFA',
-      image: require('@/assets/images/tshirt.png'),
-   },
-   {
-      id: '2',
-      name: 'Pants',
-      price: '2,000 FCFA',
-      image: require('@/assets/images/pants.png'),
-   },
-   {
-      id: '3',
-      name: 'Jacket',
-      price: '3,000 FCFA',
-      image: require('@/assets/images/jacket.png'),
-   },
-   {
-      id: '4',
-      name: 'Blanket',
-      price: '5,000 FCFA',
-      image: require('@/assets/images/blanket.png'),
-   },
    {
       id: '5',
-      name: 'Curtain Set',
-      price: '7,500 FCFA',
-      image: require('@/assets/images/curtain.png'),
-   },
-   {
-      id: '6',
-      name: 'suit',
-      price: '3,500 FCFA',
-      image: require('@/assets/images/suit.png'),
+      name: 'Accessories',
+      icon: 'checkroom' as keyof typeof MaterialIcons.glyphMap,
+      route: '/categorycards/accessories',
    },
 ];
+
+// List all image filenames in your assets/images folder
+const imageFilenames = [
+   'tshirt.png',
+   'pants.png',
+   'jacket.png',
+   'blanket.png',
+   'curtain.png',
+   'suit.png',
+   'dress.png',
+   // Add all your other image filenames here
+];
+
+// Generate the image map automatically
+const imageMap: Record<string, any> = {
+   'tshirt.png': require('@/assets/images/tshirt.png'),
+   'dress_shirt.png': require('@/assets/images/dress-skirt.png'),
+   'jeans.png': require('@/assets/images/jeans.png'),
+   'dress.png': require('@/assets/images/dress.png'),
+   'polo_shirt.png': require('@/assets/images/polo-shirt.png'),
+   'trousers.png': require('@/assets/images/trousers.png'),
+   'blouse.png': require('@/assets/images/blouse.png'),
+   'skirt.png': require('@/assets/images/skirt.png'),
+   'suit_jacket.png': require('@/assets/images/suit.png'),
+   'underwear.png': require('@/assets/images/underwear.png'),
+   'socks.png': require('@/assets/images/socks.png'),
+   'sweater.png': require('@/assets/images/sweather.png'),
+   'bedsheet.png': require('@/assets/images/bedsheet.png'),
+   'pillow_case.png': require('@/assets/images/pillow_case.png'),
+   'towel.png': require('@/assets/images/towel.png'),
+   'blanket.png': require('@/assets/images/blanket.png'),
+   'duvet.png': require('@/assets/images/duvet.png'),
+   'table_cloth.png': require('@/assets/images/table_cloth.png'),
+   'kitchen_towel.png': require('@/assets/images/kitchen_towel.png'),
+   'bath_mat.png': require('@/assets/images/bath_mat.png'),
+   'comforter.png': require('@/assets/images/comforter.png'),
+   'napkin.png': require('@/assets/images/napkin.png'),
+   'living_room_curtains.png': require('@/assets/images/living_room_curtains.png'),
+   'bedroom_curtains.png': require('@/assets/images/bedroom_curtains.png'),
+   'kitchen_curtains.png': require('@/assets/images/kitchen_curtains.png'),
+   'shower_curtain.png': require('@/assets/images/shower_curtain.png'),
+   'valance.png': require('@/assets/images/valance.png'),
+   'tie.png': require('@/assets/images/tie.png'),
+   'scarf.png': require('@/assets/images/scarf.png'),
+   'hat.png': require('@/assets/images/hat.png'),
+   'belt.png': require('@/assets/images/belt.png'),
+   'handbag.png': require('@/assets/images/handbag.png'),
+};
+
+function getImageAsset(imagePath: string) {
+   const imageName = imagePath?.split('/').pop() || 'tshirt.png';
+   return imageMap[imageName] || imageMap['tshirt.png'];
+}
 
 export default function HomeScreen() {
    const [currentPromotionIndex, setCurrentPromotionIndex] = useState(0);
@@ -134,6 +155,9 @@ export default function HomeScreen() {
    const { width: screenWidth } = Dimensions.get('window');
    const router = useRouter(); // Add router for navigation
    const { state, dispatch } = useWashBasket();
+   const { user, token } = useAuthStore();
+   const [items, setItems] = useState<any[]>([]);
+   const [loadingItems, setLoadingItems] = useState(false);
 
    // Auto-scroll promotions
    useEffect(() => {
@@ -150,6 +174,28 @@ export default function HomeScreen() {
       return () => clearInterval(interval);
    }, [currentPromotionIndex]);
 
+   // Fetch items from backend
+   useEffect(() => {
+      const fetchItems = async () => {
+         setLoadingItems(true);
+         const response = await ApiService.get(
+            '/api/inventory',
+            token || undefined
+         );
+         if (response.success && response.data && response.data.data) {
+            const mapped = response.data.data.map((item: any) => ({
+               id: item._id,
+               name: item.name,
+               price: `${item.basePrice} FCFA`,
+               image: getImageAsset(item.image),
+            }));
+            setItems(mapped);
+         }
+         setLoadingItems(false);
+      };
+      fetchItems();
+   }, [token]);
+
    // Calculate total quantity for badge
    const totalQuantity = state.items.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -157,13 +203,14 @@ export default function HomeScreen() {
    const renderCategoryItem = ({ item }: { item: CategoryItem }) => (
       <TouchableOpacity
          style={styles.categoryCard}
+         activeOpacity={0.7} // More responsive touch feedback
          onPress={() => {
             if (item.route) {
                router.push(item.route as any);
             }
          }}
       >
-         <MaterialIcons name={item.icon} size={28} color="#28B9F4" />
+         <MaterialIcons name={item.icon} size={29} color="#28B9F4" />
          <ThemedText style={styles.categoryText}>{item.name}</ThemedText>
       </TouchableOpacity>
    );
@@ -223,7 +270,7 @@ export default function HomeScreen() {
                </View>
                <View>
                   <ThemedText style={styles.greetingText}>
-                     Hi, Ges Milinkovich
+                     {user ? `Hi, ${user.name}` : 'Hi, Guest'}
                   </ThemedText>
                   <ThemedText style={styles.locationText}>
                      Douala, Cameroon
@@ -271,7 +318,7 @@ export default function HomeScreen() {
                            style={{
                               color: '#fff',
                               fontSize: 10,
-                              fontWeight: 'bold'
+                              fontWeight: 'bold',
                            }}
                         >
                            {totalQuantity}
@@ -290,15 +337,22 @@ export default function HomeScreen() {
             <View style={styles.headerSpaceholder} />
 
             {/* Category Cards - Row 2 */}
-            <FlatList
-               data={categories}
-               renderItem={renderCategoryItem}
-               keyExtractor={(item) => item.id}
-               horizontal={false}
-               numColumns={4}
-               scrollEnabled={false}
-               contentContainerStyle={styles.categoriesContainer}
-            />
+            <View style={styles.categoriesOuterContainer}>
+               <FlatList
+                  data={categories}
+                  renderItem={renderCategoryItem}
+                  keyExtractor={(item) => item.id}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesContainer}
+                  bounces={false}
+                  overScrollMode="never"
+                  decelerationRate="normal"
+                  snapToInterval={90} // Card width (80) + margin (10)
+                  snapToAlignment="center"
+                  disableIntervalMomentum={true}
+               />
+            </View>
 
             {/* Promotions Slider - Row 3 */}
             <ThemedView style={styles.promotionsContainer}>
@@ -339,12 +393,16 @@ export default function HomeScreen() {
                <ThemedText style={styles.sectionTitle}>
                   Popular Items
                </ThemedText>
-               <FlatList
-                  data={products}
-                  renderItem={renderProductItem}
-                  keyExtractor={(item) => item.id}
-                  scrollEnabled={false}
-               />
+               {loadingItems ? (
+                  <ThemedText>Loading items...</ThemedText>
+               ) : (
+                  <FlatList
+                     data={items}
+                     renderItem={renderProductItem}
+                     keyExtractor={(item) => item.id}
+                     scrollEnabled={false}
+                  />
+               )}
             </ThemedView>
 
             {/* Removed extra space at bottom to prevent overscrolling */}
@@ -425,34 +483,39 @@ const styles = StyleSheet.create({
    },
 
    // Categories - Row 2 (15%)
-   categoriesContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 5, // Reduced from 10
+   categoriesOuterContainer: {
+      paddingVertical: 8,
       backgroundColor: 'transparent',
-      height: Dimensions.get('window').height * 0.13, // Reduced from 0.15
+      height: Dimensions.get('window').height * 0.13,
+      overflow: 'hidden', // Prevent content from spilling outside
+   },
+   categoriesContainer: {
+      paddingLeft: 16,
+      paddingRight: 16 + 40, // Extra padding at the end to show there's more content
+      backgroundColor: 'transparent',
       alignItems: 'center',
-      marginTop: -5, // Added negative margin to pull content up
+      paddingTop: 2, // Add slight padding at the top
    },
    categoryCard: {
-      width: (Dimensions.get('window').width - 48) / 4, // Reduced width by increasing horizontal padding
-      height: 65, // Reduced height from 70 to 65
-      backgroundColor: '#F0F0F0',
-      borderRadius: 8,
+      width: 80, // Consistent width for each card
+      height: 68, // Slightly taller for better touch area
+      backgroundColor: '#F8F8F8', // Slightly lighter color
+      borderRadius: 10, // Slightly more rounded corners
       justifyContent: 'center',
       alignItems: 'center',
-      marginHorizontal: 2,
+      marginRight: 10, // Consistent spacing between cards
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 1,
-      elevation: 1,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08, // More subtle shadow
+      shadowRadius: 3,
+      elevation: 2,
    },
    categoryText: {
-      fontSize: 12,
-      marginTop: 5,
-      color: '#444',
+      fontSize: 11.5, // Slightly larger for better readability
+      marginTop: 6,
+      color: '#333', // Darker text for better contrast
+      textAlign: 'center',
+      fontWeight: '500', // Slightly bolder
    },
 
    // Promotions - Row 3 (25%)

@@ -7,12 +7,13 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { WashBasketProvider } from '@/components/WashBasketContext';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function RootLayout() {
    const colorScheme = useColorScheme();
@@ -20,8 +21,24 @@ export default function RootLayout() {
       SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
    });
 
+   // Initialize authentication after fonts are loaded
+   const auth = useAuthStore();
+
+   // Initialize auth on mount
+   useEffect(() => {
+      const initAuth = async () => {
+         try {
+            await auth.initAuth();
+         } catch (error) {
+            console.error('Failed to initialize auth:', error);
+         }
+      };
+
+      initAuth();
+   }, []);
+
    if (!loaded) {
-      // Async font loading only occurs in development.
+      // Return null during loading to avoid render issues
       return null;
    }
 
@@ -33,19 +50,46 @@ export default function RootLayout() {
                   <Stack
                      screenOptions={{
                         headerShown: false,
-                        contentStyle: { backgroundColor: 'transparent' },
                      }}
                   >
+                     <Stack.Screen name="index" />
                      <Stack.Screen
                         name="(tabs)"
                         options={{ headerShown: false }}
                      />
-                     <Stack.Screen name="+not-found" />
+                     <Stack.Screen
+                        name="ApiTestScreen"
+                        options={{
+                           headerShown: true,
+                           headerTitle: 'API Test',
+                        }}
+                     />
+                     <Stack.Screen
+                        name="AuthScreen"
+                        options={{
+                           animation: 'fade',
+                           gestureEnabled: false,
+                        }}
+                     />
+                     <Stack.Screen
+                        name="SplashScreen"
+                        options={{
+                           animation: 'fade',
+                           gestureEnabled: false,
+                        }}
+                     />
+                     <Stack.Screen
+                        name="WashBasketScreen"
+                        options={{
+                           presentation: 'modal',
+                           animation: 'slide_from_bottom',
+                        }}
+                     />
                   </Stack>
                </View>
             </WashBasketProvider>
          </SafeAreaProvider>
-         <StatusBar style="auto" />
+         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
    );
 }

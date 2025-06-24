@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    StyleSheet,
    View,
    FlatList,
    TouchableOpacity,
    StatusBar,
-   Dimensions,
    Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -16,67 +15,85 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import CategorySelector from '@/components/CategorySelector';
 import { useWashBasket } from '@/components/WashBasketContext';
+import { ApiService } from '@/utils/api.service';
+import { useAuthStore } from '@/store/auth.store';
 
-// Define curtain item interface
-interface CurtainItem {
-   id: string;
-   name: string;
-   price: string;
-   description: string;
-   image: any;
+// Helper for images (copy from clothes.tsx)
+const imageMap: Record<string, any> = {
+   'tshirt.png': require('@/assets/images/tshirt.png'),
+   'dress_shirt.png': require('@/assets/images/dress-skirt.png'),
+   'jeans.png': require('@/assets/images/jeans.png'),
+   'dress.png': require('@/assets/images/dress.png'),
+   'polo_shirt.png': require('@/assets/images/polo-shirt.png'),
+   'trousers.png': require('@/assets/images/trousers.png'),
+   'blouse.png': require('@/assets/images/blouse.png'),
+   'skirt.png': require('@/assets/images/skirt.png'),
+   'suit_jacket.png': require('@/assets/images/suit.png'),
+   'underwear.png': require('@/assets/images/underwear.png'),
+   'socks.png': require('@/assets/images/socks.png'),
+   'sweater.png': require('@/assets/images/sweather.png'),
+   'bedsheet.png': require('@/assets/images/bedsheet.png'),
+   'pillow_case.png': require('@/assets/images/pillow_case.png'),
+   'towel.png': require('@/assets/images/towel.png'),
+   'blanket.png': require('@/assets/images/blanket.png'),
+   'duvet.png': require('@/assets/images/duvet.png'),
+   'table_cloth.png': require('@/assets/images/table_cloth.png'),
+   'kitchen_towel.png': require('@/assets/images/kitchen_towel.png'),
+   'bath_mat.png': require('@/assets/images/bath_mat.png'),
+   'comforter.png': require('@/assets/images/comforter.png'),
+   'napkin.png': require('@/assets/images/napkin.png'),
+   'living_room_curtains.png': require('@/assets/images/living_room_curtains.png'),
+   'bedroom_curtains.png': require('@/assets/images/bedroom_curtains.png'),
+   'kitchen_curtains.png': require('@/assets/images/kitchen_curtains.png'),
+   'shower_curtain.png': require('@/assets/images/shower_curtain.png'),
+   'valance.png': require('@/assets/images/valance.png'),
+   'tie.png': require('@/assets/images/tie.png'),
+   'scarf.png': require('@/assets/images/scarf.png'),
+   'hat.png': require('@/assets/images/hat.png'),
+   'belt.png': require('@/assets/images/belt.png'),
+   'handbag.png': require('@/assets/images/handbag.png'),
+   'curtain.png': require('@/assets/images/curtain.png'),
+};
+function getImageAsset(imagePath: string) {
+   const imageName = imagePath?.split('/').pop() || 'curtain.png';
+   return imageMap[imageName] || imageMap['curtain.png'];
 }
-
-// Sample curtain items data
-const curtainItems: CurtainItem[] = [
-   {
-      id: '1',
-      name: 'Standard Curtains',
-      price: '3,500 FCFA',
-      description: 'Regular washing and pressing for standard curtains',
-      image: require('@/assets/images/curtain.png'),
-   },
-   {
-      id: '2',
-      name: 'Blackout Curtains',
-      price: '4,000 FCFA',
-      description: 'Special care for blackout/thermal curtains',
-      image: require('@/assets/images/curtain.png'),
-   },
-   {
-      id: '3',
-      name: 'Sheer Curtains',
-      price: '3,000 FCFA',
-      description: 'Delicate washing for sheer and lace curtains',
-      image: require('@/assets/images/curtain.png'),
-   },
-   {
-      id: '4',
-      name: 'Drapes',
-      price: '5,000 FCFA',
-      description: 'Professional cleaning for heavy drapes',
-      image: require('@/assets/images/curtain.png'),
-   },
-   {
-      id: '5',
-      name: 'Valances',
-      price: '2,000 FCFA',
-      description: 'Gentle washing for decorative valances',
-      image: require('@/assets/images/curtain.png'),
-   },
-];
 
 export default function CurtainsScreen() {
    const router = useRouter();
    const [searchVisible, setSearchVisible] = useState(false);
    const { state, dispatch } = useWashBasket();
+   const [items, setItems] = useState<any[]>([]);
+   const [loading, setLoading] = useState(false);
+   const token = useAuthStore((s) => s.token);
 
-   function CurtainItemAnimated({
-      item,
-      index,
-   }: {
-      item: CurtainItem;
-      index: number;
-   }) {
+   useEffect(() => {
+      const fetchItems = async () => {
+         setLoading(true);
+         const authToken = token || undefined;
+         const response = await ApiService.get('/api/inventory', authToken);
+         console.log('INVENTORY RESPONSE:', response); // Debug log
+         if (response.success && response.data && response.data.data) {
+            const filtered = response.data.data.filter(
+               (item: any) =>
+                  item.category && item.category.toLowerCase() === 'curtains'
+            );
+            setItems(
+               filtered.map((item: any) => ({
+                  ...item,
+                  price: `${item.basePrice} FCFA`,
+                  image: getImageAsset(item.image),
+               }))
+            );
+         } else {
+            setItems([]);
+         }
+         setLoading(false);
+      };
+      fetchItems();
+   }, [token]);
+
+   function CurtainItemAnimated({ item, index }: { item: any; index: number }) {
       const animatedValue = React.useRef(new Animated.Value(0)).current;
       React.useEffect(() => {
          Animated.timing(animatedValue, {
@@ -118,7 +135,7 @@ export default function CurtainsScreen() {
                         item: {
                            id: item.id,
                            name: item.name,
-                           price: Number(item.price.replace(/[^\d]/g, '')),
+                           price: Number(item.basePrice),
                            image: item.image,
                         },
                      })
@@ -204,15 +221,19 @@ export default function CurtainsScreen() {
             <ThemedText style={styles.sectionTitle}>Available Items</ThemedText>
 
             {/* Curtain Items List - Styled like Popular Items */}
-            <FlatList
-               data={curtainItems}
-               renderItem={({ item, index }) => (
-                  <CurtainItemAnimated item={item} index={index} />
-               )}
-               keyExtractor={(item) => item.id}
-               contentContainerStyle={styles.listContainer}
-               showsVerticalScrollIndicator={false}
-            />
+            {loading ? (
+               <ThemedText>Loading items...</ThemedText>
+            ) : (
+               <FlatList
+                  data={items}
+                  renderItem={({ item, index }) => (
+                     <CurtainItemAnimated item={item} index={index} />
+                  )}
+                  keyExtractor={(item) => item._id || item.id}
+                  contentContainerStyle={styles.listContainer}
+                  showsVerticalScrollIndicator={false}
+               />
+            )}
          </ThemedView>
       </View>
    );

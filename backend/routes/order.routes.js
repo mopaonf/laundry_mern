@@ -5,12 +5,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 const Order = require('../models/Order');
 
 // POST /api/orders - Create a new order
-router.post(
-   '/',
-   protect,
-   authorize('receptionist', 'admin'),
-   orderController.createOrder
-);
+router.post('/', protect, orderController.createOrder);
 
 // GET /api/orders - Get all orders
 router.get(
@@ -18,6 +13,14 @@ router.get(
    protect,
    authorize('receptionist', 'admin'),
    orderController.getAllOrders
+);
+
+// GET /api/orders/my-orders - Get customer's own orders
+router.get(
+   '/my-orders',
+   protect,
+   authorize('customer'),
+   orderController.getMyOrders
 );
 
 // GET /api/orders/dashboard-stats - Get dashboard statistics

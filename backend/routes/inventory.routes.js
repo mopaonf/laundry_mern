@@ -3,11 +3,11 @@ const router = express.Router();
 const inventoryController = require('../controllers/inventory.controller');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// GET /api/inventory - Get all inventory items (receptionist/admin only)
+// GET /api/inventory - Get all inventory items (customer/receptionist/admin)
 router.get(
    '/',
    protect,
-   authorize('receptionist', 'admin'),
+   authorize('customer', 'receptionist', 'admin'),
    inventoryController.getAllItems
 );
 

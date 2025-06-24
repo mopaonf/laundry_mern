@@ -6,12 +6,15 @@ import {
    StatusBar,
    ScrollView,
    FlatList,
+   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuthStore } from '@/store/auth.store';
 
 // Menu items interface
 interface MenuItem {
@@ -21,52 +24,100 @@ interface MenuItem {
    action?: () => void;
 }
 
-// Sample menu items
-const menuItems: MenuItem[] = [
-   {
-      id: '1',
-      title: 'Wallet',
-      icon: 'account-balance-wallet',
-   },
-   {
-      id: '2',
-      title: 'Orders',
-      icon: 'receipt-long',
-   },
-   {
-      id: '3',
-      title: 'Invite Friends',
-      icon: 'person-add',
-   },
-   {
-      id: '4',
-      title: 'Price List',
-      icon: 'list-alt',
-   },
-   {
-      id: '5',
-      title: 'Help & Support',
-      icon: 'help',
-   },
-   {
-      id: '6',
-      title: 'Settings',
-      icon: 'settings',
-   },
-   {
-      id: '7',
-      title: 'Logout',
-      icon: 'logout',
-   },
-];
-
 export default function MoreScreen() {
-   // User info
-   const user = {
-      name: 'Ges Milinkovich',
-      email: 'ges.milinkovich@example.com',
-      profileImage: require('@/assets/images/ges.webp'), // Using placeholder image
+   const { logout, user } = useAuthStore();
+
+   const handleLogout = () => {
+      Alert.alert('Logout', 'Are you sure you want to logout?', [
+         { text: 'Cancel', style: 'cancel' },
+         {
+            text: 'Logout',
+            onPress: async () => {
+               await logout();
+               router.replace('/');
+            },
+            style: 'destructive',
+         },
+      ]);
    };
+
+   // Default profile image
+   const profileImage = require('@/assets/images/profile-avatar.png');
+
+   // Define menu items with actions
+   const menuItems: MenuItem[] = [
+      {
+         id: '1',
+         title: 'Wallet',
+         icon: 'account-balance-wallet',
+         action: () => router.push('/(tabs)/wallet'),
+      },
+      {
+         id: '2',
+         title: 'Orders',
+         icon: 'receipt-long',
+         action: () => router.push('/(tabs)/orders'),
+      },
+      {
+         id: '3',
+         title: 'Invite Friends',
+         icon: 'person-add',
+         action: () =>
+            Alert.alert('Coming Soon', 'This feature will be available soon!'),
+      },
+      // Add server configuration for debugging in dev mode
+      {
+         id: 'server-config',
+         title: 'Server Configuration',
+         icon: 'settings',
+         action: () => router.push('/ServerConfigScreen'),
+      },
+      {
+         id: 'api-test',
+         title: 'API Diagnostics',
+         icon: 'bug-report',
+         action: () => router.push('/ApiTestScreen'),
+      },
+      {
+         id: '4',
+         title: 'Price List',
+         icon: 'list-alt',
+         action: () =>
+            Alert.alert('Price List', 'The price list feature is coming soon!'),
+      },
+      {
+         id: '5',
+         title: 'Help & Support',
+         icon: 'help',
+         action: () =>
+            Alert.alert(
+               'Help & Support',
+               'Contact us at support@laundryhub.com'
+            ),
+      },
+      {
+         id: '6',
+         title: 'Settings',
+         icon: 'settings',
+         action: () =>
+            Alert.alert(
+               'Settings',
+               'Settings will be available in the next update!'
+            ),
+      },
+      {
+         id: '7',
+         title: 'API Test',
+         icon: 'developer-mode',
+         action: () => router.push('/ApiTestScreen'),
+      },
+      {
+         id: '8',
+         title: 'Logout',
+         icon: 'logout',
+         action: handleLogout,
+      },
+   ];
 
    const renderMenuItem = ({ item }: { item: MenuItem }) => {
       return (
@@ -86,7 +137,6 @@ export default function MoreScreen() {
          </TouchableOpacity>
       );
    };
-
    return (
       <View style={styles.container}>
          <StatusBar barStyle="light-content" backgroundColor="#28B9F4" />
@@ -101,16 +151,17 @@ export default function MoreScreen() {
                <View style={styles.profileInfo}>
                   <View style={styles.profileImageContainer}>
                      <Image
-                        source={user.profileImage}
+                        source={profileImage}
                         style={styles.profileImage}
+                        contentFit="cover"
                      />
                   </View>
                   <View style={styles.userInfo}>
                      <ThemedText style={styles.userName}>
-                        {user.name}
+                        {user?.name || 'Guest User'}
                      </ThemedText>
                      <ThemedText style={styles.userEmail}>
-                        {user.email}
+                        {user?.email || 'Not logged in'}
                      </ThemedText>
                   </View>
                </View>

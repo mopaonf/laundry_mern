@@ -39,6 +39,12 @@ const categories: Category[] = [
       route: '/categorycards/curtains',
       icon: 'curtains',
    },
+   {
+      id: '4',
+      name: 'Accessories',
+      route: '/categorycards/accessories',
+      icon: 'checkroom',
+   },
 ];
 
 interface CategorySelectorProps {

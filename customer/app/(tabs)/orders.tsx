@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    StyleSheet,
    FlatList,
@@ -6,28 +6,37 @@ import {
    View,
    StatusBar,
    ScrollView,
+   RefreshControl,
+   ActivityIndicator,
+   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { format } from 'date-fns';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuthStore } from '@/store/auth.store';
+import { ApiService } from '@/utils/api.service';
 
 // Types for the app data
 interface OrderItem {
-   id: string;
-   orderNumber: string;
-   date: string;
-   status: 'In Progress' | 'Ready for Pickup' | 'Completed';
-   progressStage: number; // 1-4: Received, Washing, Ready, Delivered
+   _id: string;
    items: {
+      _id: string;
+      itemId: string;
       name: string;
+      price: number;
       quantity: number;
-      icon: keyof typeof MaterialIcons.glyphMap;
    }[];
+   pickupDate: string;
+   notes?: string;
+   total: number;
+   status: 'In Progress' | 'Ready for Pickup' | 'Completed';
+   createdAt: string;
 }
 
-// Sample order data
+// For display purposes
 const orders: OrderItem[] = [
    {
       id: '1',
@@ -65,11 +74,52 @@ const orders: OrderItem[] = [
    },
 ];
 
-// Uncomment to test empty state
-// const orders: OrderItem[] = [];
-
 export default function OrdersScreen() {
-   const [searchVisible, setSearchVisible] = useState(false);   const getStatusColor = (status: string) => {
+   const { token, user } = useAuthStore();
+   const [orders, setOrders] = useState<OrderItem[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [refreshing, setRefreshing] = useState(false);
+   const [searchVisible, setSearchVisible] = useState(false);
+
+   // Fetch orders from the API
+   const fetchOrders = async () => {
+      if (!token) {
+         setLoading(false);
+         return;
+      }
+
+      try {
+         setLoading(true);
+         const response = await ApiService.get<{ data: OrderItem[] }>(
+            '/api/orders/my-orders',
+            token
+         );
+
+         if (response.success && response.data?.data) {
+            setOrders(response.data.data);
+         } else {
+            console.error('Failed to fetch orders:', response.error);
+         }
+      } catch (error) {
+         console.error('Error fetching orders:', error);
+      } finally {
+         setLoading(false);
+         setRefreshing(false);
+      }
+   };
+
+   // Fetch orders on initial load
+   useEffect(() => {
+      fetchOrders();
+   }, [token]);
+
+   // Handle refresh
+   const onRefresh = () => {
+      setRefreshing(true);
+      fetchOrders();
+   };
+
+   const getStatusColor = (status: string) => {
       switch (status) {
          case 'In Progress':
             return '#FFA500'; // Orange
@@ -82,16 +132,45 @@ export default function OrdersScreen() {
       }
    };
 
+   // Calculate progress stage based on status
+   const getProgressStage = (status: string) => {
+      switch (status) {
+         case 'In Progress':
+            return 2; // Washing
+         case 'Ready for Pickup':
+            return 3; // Ready
+         case 'Completed':
+            return 4; // Delivered
+         default:
+            return 1; // Received
+      }
+   };
+
    const renderOrderItem = ({ item }: { item: OrderItem }) => {
+      // Calculate the number of items in this order
+      const totalItems = item.items.reduce(
+         (sum, item) => sum + item.quantity,
+         0
+      );
+
+      // Format dates
+      const orderDate = format(new Date(item.createdAt), 'MMM d, yyyy');
+      const pickupDate = format(new Date(item.pickupDate), 'MMM d, yyyy');
+
+      // Generate a short order ID for display
+      const shortOrderId = item._id
+         .substring(item._id.length - 8)
+         .toUpperCase();
+
       return (
          <ThemedView style={styles.orderCard}>
             {/* Order Header */}
             <View style={styles.orderHeader}>
                <View>
                   <ThemedText style={styles.orderNumber}>
-                     {item.orderNumber}
+                     Order #{shortOrderId}
                   </ThemedText>
-                  <ThemedText style={styles.orderDate}>{item.date}</ThemedText>
+                  <ThemedText style={styles.orderDate}>{orderDate}</ThemedText>
                </View>
                <View
                   style={[
@@ -104,40 +183,41 @@ export default function OrdersScreen() {
                   </ThemedText>
                </View>
             </View>
-
-            {/* Progress Bar */}
-            <View style={styles.progressContainer}>
+            {/* Progress Bar */}            <View style={styles.progressContainer}>
                <View style={styles.progressBar}>
-                  {[1, 2, 3, 4].map((stage) => (
-                     <React.Fragment key={stage}>
-                        {stage > 1 && (
-                           <View
-                              style={[
-                                 styles.progressLine,
-                                 stage <= item.progressStage
-                                    ? styles.progressLineActive
-                                    : {},
-                              ]}
-                           />
-                        )}
-                        <View
-                           style={[
-                              styles.progressDot,
-                              stage <= item.progressStage
-                                 ? styles.progressDotActive
-                                 : {},
-                           ]}
-                        >
-                           {stage <= item.progressStage && (
-                              <MaterialIcons
-                                 name="check"
-                                 size={12}
-                                 color="#FFFFFF"
+                  {[1, 2, 3, 4].map((stage) => {
+                     const progressStage = getProgressStage(item.status);
+                     return (
+                        <React.Fragment key={stage}>
+                           {stage > 1 && (
+                              <View
+                                 style={[
+                                    styles.progressLine,
+                                    stage <= progressStage
+                                       ? styles.progressLineActive
+                                       : {},
+                                 ]}
                               />
                            )}
-                        </View>
-                     </React.Fragment>
-                  ))}
+                           <View
+                              style={[
+                                 styles.progressDot,
+                                 stage <= progressStage
+                                    ? styles.progressDotActive
+                                    : {},
+                              ]}
+                           >
+                              {stage <= progressStage && (
+                                 <MaterialIcons
+                                    name="check"
+                                    size={12}
+                                    color="#FFFFFF"
+                                 />
+                              )}
+                           </View>
+                        </React.Fragment>
+                     );
+                  })}
                </View>
                <View style={styles.progressLabels}>
                   <ThemedText style={styles.progressLabel}>Received</ThemedText>
@@ -147,14 +227,13 @@ export default function OrdersScreen() {
                      Delivered
                   </ThemedText>
                </View>
-            </View>
-
+            </View>{' '}
             {/* Order Items */}
             <View style={styles.orderItems}>
                {item.items.map((orderItem, idx) => (
                   <View key={idx} style={styles.orderItemRow}>
                      <MaterialIcons
-                        name={orderItem.icon}
+                        name="local-laundry-service"
                         size={16}
                         color="#28B9F4"
                      />
@@ -164,7 +243,6 @@ export default function OrdersScreen() {
                   </View>
                ))}
             </View>
-
             {/* Details Button */}
             <View style={styles.orderFooter}>
                <TouchableOpacity style={styles.detailsButton}>
@@ -176,24 +254,33 @@ export default function OrdersScreen() {
          </ThemedView>
       );
    };
-
    const renderEmptyComponent = () => (
       <View style={styles.emptyContainer}>
-         <MaterialIcons
-            name="local-laundry-service"
-            size={70}
-            color="#E0E0E0"
-         />
-         <ThemedText style={styles.emptyText}>
-            You have no active orders yet
-         </ThemedText>
+         {loading ? (
+            <>
+               <ActivityIndicator size="large" color="#28B9F4" />
+               <ThemedText style={styles.emptyText}>
+                  Loading your orders...
+               </ThemedText>
+            </>
+         ) : (
+            <>
+               <MaterialIcons
+                  name="local-laundry-service"
+                  size={70}
+                  color="#E0E0E0"
+               />
+               <ThemedText style={styles.emptyText}>
+                  You have no active orders yet
+               </ThemedText>
+            </>
+         )}
       </View>
    );
 
    return (
       <View style={styles.container}>
          <StatusBar barStyle="light-content" backgroundColor="#28B9F4" />
-
          {/* Header */}
          <View style={styles.header}>
             <ThemedText style={styles.headerTitle}>My Orders</ThemedText>
@@ -202,17 +289,23 @@ export default function OrdersScreen() {
                onPress={() => setSearchVisible(!searchVisible)}
             >
                <MaterialIcons name="search" size={30} color="#E0E0E0" />
-            </TouchableOpacity>
-         </View>
-
+            </TouchableOpacity>         </View>
          {/* Order List */}
          <FlatList
             data={orders}
             renderItem={renderOrderItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item._id}
             ListEmptyComponent={renderEmptyComponent}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+               <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#28B9F4']}
+                  tintColor="#28B9F4"
+               />
+            }
          />
       </View>
    );
@@ -242,7 +335,8 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center',
       padding: 6,
-   },   listContainer: {
+   },
+   listContainer: {
       flexGrow: 1,
       paddingBottom: 96, // Increased padding to account for the taller footer
       paddingHorizontal: 16,

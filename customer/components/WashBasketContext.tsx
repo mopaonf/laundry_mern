@@ -16,7 +16,8 @@ type Action =
    | { type: 'ADD_ITEM'; item: Omit<CartItem, 'quantity'> }
    | { type: 'REMOVE_ITEM'; id: string }
    | { type: 'INCREMENT'; id: string }
-   | { type: 'DECREMENT'; id: string };
+   | { type: 'DECREMENT'; id: string }
+   | { type: 'CLEAR_BASKET' };
 
 const WashBasketContext = createContext<{
    state: State;
@@ -55,6 +56,10 @@ function reducer(state: State, action: Action): State {
                   i.id === action.id ? { ...i, quantity: i.quantity - 1 } : i
                )
                .filter((i) => i.quantity > 0),
+         };
+      case 'CLEAR_BASKET':
+         return {
+            items: [],
          };
       default:
          return state;

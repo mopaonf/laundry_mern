@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    StyleSheet,
    View,
    FlatList,
    TouchableOpacity,
    StatusBar,
-   Dimensions,
    Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -16,86 +15,88 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import CategorySelector from '@/components/CategorySelector';
 import { useWashBasket } from '@/components/WashBasketContext';
+import { ApiService } from '@/utils/api.service';
+import { useAuthStore } from '@/store/auth.store';
 
-// Define clothing item interface
-interface ClothingItem {
-   id: string;
-   name: string;
-   price: string;
-   description: string;
-   image: any;
+// Helper for images (copy from your main screen)
+const imageMap: Record<string, any> = {
+   'tshirt.png': require('@/assets/images/tshirt.png'),
+   'dress_shirt.png': require('@/assets/images/dress-skirt.png'),
+   'jeans.png': require('@/assets/images/jeans.png'),
+   'dress.png': require('@/assets/images/dress.png'),
+   'polo_shirt.png': require('@/assets/images/polo-shirt.png'),
+   'trousers.png': require('@/assets/images/trousers.png'),
+   'blouse.png': require('@/assets/images/blouse.png'),
+   'skirt.png': require('@/assets/images/skirt.png'),
+   'suit_jacket.png': require('@/assets/images/suit.png'),
+   'underwear.png': require('@/assets/images/underwear.png'),
+   'socks.png': require('@/assets/images/socks.png'),
+   'sweater.png': require('@/assets/images/sweather.png'),
+   'bedsheet.png': require('@/assets/images/bedsheet.png'),
+   'pillow_case.png': require('@/assets/images/pillow_case.png'),
+   'towel.png': require('@/assets/images/towel.png'),
+   'blanket.png': require('@/assets/images/blanket.png'),
+   'duvet.png': require('@/assets/images/duvet.png'),
+   'table_cloth.png': require('@/assets/images/table_cloth.png'),
+   'kitchen_towel.png': require('@/assets/images/kitchen_towel.png'),
+   'bath_mat.png': require('@/assets/images/bath_mat.png'),
+   'comforter.png': require('@/assets/images/comforter.png'),
+   'napkin.png': require('@/assets/images/napkin.png'),
+   'living_room_curtains.png': require('@/assets/images/living_room_curtains.png'),
+   'bedroom_curtains.png': require('@/assets/images/bedroom_curtains.png'),
+   'kitchen_curtains.png': require('@/assets/images/kitchen_curtains.png'),
+   'shower_curtain.png': require('@/assets/images/shower_curtain.png'),
+   'valance.png': require('@/assets/images/valance.png'),
+   'tie.png': require('@/assets/images/tie.png'),
+   'scarf.png': require('@/assets/images/scarf.png'),
+   'hat.png': require('@/assets/images/hat.png'),
+   'belt.png': require('@/assets/images/belt.png'),
+   'handbag.png': require('@/assets/images/handbag.png'),
+};
+function getImageAsset(imagePath: string) {
+   const imageName = imagePath?.split('/').pop() || 'tshirt.png';
+   return imageMap[imageName] || imageMap['tshirt.png'];
 }
-
-// Sample clothing items data
-const clothingItems: ClothingItem[] = [
-   {
-      id: '1',
-      name: 'T-Shirt',
-      price: '1,500 FCFA',
-      description: 'Regular wash and iron service for t-shirts',
-      image: require('@/assets/images/tshirt.png'),
-   },
-   {
-      id: '2',
-      name: 'Dress Shirt',
-      price: '2,000 FCFA',
-      description: 'Premium wash and press for formal shirts',
-      image: require('@/assets/images/tshirt.png'),
-   },
-   {
-      id: '3',
-      name: 'Pants',
-      price: '2,000 FCFA',
-      description: 'Standard cleaning for all types of pants',
-      image: require('@/assets/images/tshirt.png'),
-   },
-   {
-      id: '4',
-      name: 'Jeans',
-      price: '2,500 FCFA',
-      description: 'Special wash for denim to preserve color',
-      image: require('@/assets/images/tshirt.png'),
-   },
-   {
-      id: '5',
-      name: 'Suit',
-      price: '5,000 FCFA',
-      description: 'Complete dry clean and press for formal suits',
-      image: require('@/assets/images/suit.png'),
-   },
-   {
-      id: '6',
-      name: 'Jacket',
-      price: '3,000 FCFA',
-      description: 'Professional cleaning for all types of jackets',
-      image: require('@/assets/images/jacket.png'),
-   },
-   {
-      id: '7',
-      name: 'Dress',
-      price: '3,500 FCFA',
-      description: 'Gentle cleaning for dresses of all fabrics',
-      image: require('@/assets/images/tshirt.png'),
-   },
-   {
-      id: '8',
-      name: 'Sweater',
-      price: '2,800 FCFA',
-      description: 'Special care for knitted and delicate sweaters',
-      image: require('@/assets/images/tshirt.png'),
-   },
-];
 
 export default function ClothesScreen() {
    const router = useRouter();
    const [searchVisible, setSearchVisible] = useState(false);
    const { state, dispatch } = useWashBasket();
+   const [items, setItems] = useState<any[]>([]);
+   const [loading, setLoading] = useState(false);
+   const token = useAuthStore((s) => s.token);
+
+   useEffect(() => {
+      const fetchItems = async () => {
+         setLoading(true);
+         const authToken = token || undefined;
+         const response = await ApiService.get('/api/inventory', authToken);
+         console.log('INVENTORY RESPONSE:', response); // Debug log
+         if (response.success && response.data && response.data.data) {
+            const filtered = response.data.data.filter(
+               (item: any) =>
+                  item.category && item.category.toLowerCase() === 'clothes'
+            );
+            setItems(
+               filtered.map((item: any) => ({
+                  ...item,
+                  price: `${item.basePrice} FCFA`,
+                  image: getImageAsset(item.image),
+               }))
+            );
+         } else {
+            setItems([]);
+         }
+         setLoading(false);
+      };
+      fetchItems();
+   }, [token]);
 
    function ClothingItemAnimated({
       item,
       index,
    }: {
-      item: ClothingItem;
+      item: any;
       index: number;
    }) {
       const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -139,7 +140,7 @@ export default function ClothesScreen() {
                         item: {
                            id: item.id,
                            name: item.name,
-                           price: Number(item.price.replace(/[^\d]/g, '')),
+                           price: Number(item.basePrice),
                            image: item.image,
                         },
                      })
@@ -225,15 +226,19 @@ export default function ClothesScreen() {
             <ThemedText style={styles.sectionTitle}>Available Items</ThemedText>
 
             {/* Clothing Items List - Styled like Popular Items */}
-            <FlatList
-               data={clothingItems}
-               renderItem={({ item, index }) => (
-                  <ClothingItemAnimated item={item} index={index} />
-               )}
-               keyExtractor={(item) => item.id}
-               contentContainerStyle={styles.listContainer}
-               showsVerticalScrollIndicator={false}
-            />
+            {loading ? (
+               <ThemedText>Loading items...</ThemedText>
+            ) : (
+               <FlatList
+                  data={items}
+                  renderItem={({ item, index }) => (
+                     <ClothingItemAnimated item={item} index={index} />
+                  )}
+                  keyExtractor={(item) => item._id || item.id}
+                  contentContainerStyle={styles.listContainer}
+                  showsVerticalScrollIndicator={false}
+               />
+            )}
          </ThemedView>
       </View>
    );

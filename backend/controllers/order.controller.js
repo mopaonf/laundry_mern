@@ -4,21 +4,38 @@ const User = require('../models/User');
 /**
  * @desc    Create a new order
  * @route   POST /api/orders
- * @access  Private (Receptionist/Admin)
+ * @access  Private (Customer/Receptionist/Admin)
  */
 exports.createOrder = async (req, res) => {
    try {
-      const { customerId, items, pickupDate, notes, total } = req.body;
+      const { items, pickupDate, notes, total } = req.body;
+      let customerId;
 
-      // Validate customer exists
-      const customerExists = await User.findOne({
-         _id: customerId,
-         role: 'customer',
-      });
-      if (!customerExists) {
-         return res.status(404).json({
+      // If the request is from a customer, use their own ID
+      if (req.user.role === 'customer') {
+         customerId = req.user._id;
+      } else if (
+         req.user.role === 'receptionist' ||
+         req.user.role === 'admin'
+      ) {
+         // If from staff, use the provided customerId
+         customerId = req.body.customerId;
+
+         // Validate customer exists when staff is creating an order
+         const customerExists = await User.findOne({
+            _id: customerId,
+            role: 'customer',
+         });
+         if (!customerExists) {
+            return res.status(404).json({
+               success: false,
+               message: 'Customer not found',
+            });
+         }
+      } else {
+         return res.status(403).json({
             success: false,
-            message: 'Customer not found',
+            message: 'Not authorized to create orders',
          });
       }
 
@@ -97,6 +114,33 @@ exports.getAllOrders = async (req, res) => {
       res.status(500).json({
          success: false,
          message: 'Error fetching orders',
+         error:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+   }
+};
+
+/**
+ * @desc    Get customer's own orders
+ * @route   GET /api/orders/my-orders
+ * @access  Private (Customer)
+ */
+exports.getMyOrders = async (req, res) => {
+   try {
+      // Find orders for the current customer
+      const orders = await Order.find({ customerId: req.user._id }).sort({
+         createdAt: -1,
+      });
+
+      res.status(200).json({
+         success: true,
+         count: orders.length,
+         data: orders,
+      });
+   } catch (error) {
+      res.status(500).json({
+         success: false,
+         message: 'Error fetching your orders',
          error:
             process.env.NODE_ENV === 'development' ? error.message : undefined,
       });

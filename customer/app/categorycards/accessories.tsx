@@ -18,7 +18,6 @@ import { useWashBasket } from '@/components/WashBasketContext';
 import { ApiService } from '@/utils/api.service';
 import { useAuthStore } from '@/store/auth.store';
 
-// Helper for images (copy from clothes.tsx)
 const imageMap: Record<string, any> = {
    'tshirt.png': require('@/assets/images/tshirt.png'),
    'dress_shirt.png': require('@/assets/images/dress-skirt.png'),
@@ -52,14 +51,14 @@ const imageMap: Record<string, any> = {
    'hat.png': require('@/assets/images/hat.png'),
    'belt.png': require('@/assets/images/belt.png'),
    'handbag.png': require('@/assets/images/handbag.png'),
-   'curtain.png': require('@/assets/images/curtain.png'),
+   'accessory.png': require('@/assets/images/handbag.png'),
 };
 function getImageAsset(imagePath: string) {
-   const imageName = imagePath?.split('/').pop() || 'blanket.png';
-   return imageMap[imageName] || imageMap['blanket.png'];
+   const imageName = imagePath?.split('/').pop() || 'accessory.png';
+   return imageMap[imageName] || imageMap['accessory.png'];
 }
 
-export default function HouseholdsScreen() {
+export default function AccessoriesScreen() {
    const router = useRouter();
    const [searchVisible, setSearchVisible] = useState(false);
    const { state, dispatch } = useWashBasket();
@@ -76,7 +75,7 @@ export default function HouseholdsScreen() {
          if (response.success && response.data && response.data.data) {
             const filtered = response.data.data.filter(
                (item: any) =>
-                  item.category && item.category.toLowerCase() === 'household'
+                  item.category && item.category.toLowerCase() === 'accessories'
             );
             setItems(
                filtered.map((item: any) => ({
@@ -93,7 +92,7 @@ export default function HouseholdsScreen() {
       fetchItems();
    }, [token]);
 
-   function HouseholdItemAnimated({
+   function AccessoryItemAnimated({
       item,
       index,
    }: {
@@ -170,7 +169,7 @@ export default function HouseholdsScreen() {
                >
                   <MaterialIcons name="arrow-back" size={26} color="#E0E0E0" />
                </TouchableOpacity>
-               <ThemedText style={styles.headerTitle}>Households</ThemedText>
+               <ThemedText style={styles.headerTitle}>Accessories</ThemedText>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                <TouchableOpacity
@@ -222,18 +221,18 @@ export default function HouseholdsScreen() {
          {/* Main content area with white background */}
          <ThemedView style={styles.contentContainer}>
             {/* Add Category Selector */}
-            <CategorySelector currentCategory="Household" />
+            <CategorySelector currentCategory="Accessories" />
 
             <ThemedText style={styles.sectionTitle}>Available Items</ThemedText>
 
-            {/* Household Items List - Styled like Popular Items */}
+            {/* Accessories Items List - Styled like Popular Items */}
             {loading ? (
                <ThemedText>Loading items...</ThemedText>
             ) : (
                <FlatList
                   data={items}
                   renderItem={({ item, index }) => (
-                     <HouseholdItemAnimated item={item} index={index} />
+                     <AccessoryItemAnimated item={item} index={index} />
                   )}
                   keyExtractor={(item) => item._id || item.id}
                   contentContainerStyle={styles.listContainer}
