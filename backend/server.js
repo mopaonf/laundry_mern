@@ -11,6 +11,9 @@ const authRoutes = require('./routes/auth.routes');
 const customerRoutes = require('./routes/customer.routes');
 const inventoryRoutes = require('./routes/inventory.routes');
 const orderRoutes = require('./routes/order.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const transactionRoutes = require('./routes/transaction.routes');
+const paymentSyncRoutes = require('./routes/payment-sync.routes');
 
 // Initialize Express app
 const app = express();
@@ -57,6 +60,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/payment-sync', paymentSyncRoutes);
 
 // Route not found handler - make sure this comes AFTER your routes
 app.use((req, res, next) => {
@@ -100,6 +106,9 @@ const server = app.listen(PORT, () => {
    console.log('- Routes under /api/customers');
    console.log('- Routes under /api/inventory');
    console.log('- Routes under /api/orders');
+   console.log('- Routes under /api/payment');
+   console.log('- Routes under /api/transactions');
+   console.log('- Routes under /api/payment-sync');
 });
 
 // Handle server errors

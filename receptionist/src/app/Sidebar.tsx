@@ -10,6 +10,7 @@ import {
    FiLogOut,
    FiMenu,
    FiX,
+   FiDollarSign,
 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 
@@ -23,6 +24,7 @@ const navLinks = [
    { href: '/orders', label: 'Orders', icon: <FiList size={20} /> },
    { href: '/customers', label: 'Customers', icon: <FiUsers size={20} /> },
    { href: '/settings', label: 'Settings', icon: <FiSettings size={20} /> },
+
 ];
 
 export default function Sidebar() {

@@ -33,7 +33,7 @@ export default function WashBasketScreen() {
          <ThemedView style={styles.contentContainer}>
             <FlatList
                data={state.items}
-               keyExtractor={(item) => item.id}
+               keyExtractor={(item) => item.id.toString()} // Ensure ID is converted to string
                contentContainerStyle={{ paddingBottom: 30 }}
                renderItem={({ item }) => (
                   <ThemedView style={styles.itemCard}>
@@ -58,7 +58,9 @@ export default function WashBasketScreen() {
                                  color="white"
                               />
                            </TouchableOpacity>
-                           <ThemedText style={styles.qtyText}>{item.quantity}</ThemedText>
+                           <ThemedText style={styles.qtyText}>
+                              {item.quantity}
+                           </ThemedText>
                            <TouchableOpacity
                               style={styles.qtyButton}
                               onPress={() =>
@@ -99,7 +101,7 @@ export default function WashBasketScreen() {
                   <ThemedText style={styles.totalValue}>
                      {total.toLocaleString()} FCFA
                   </ThemedText>
-               </View>{' '}
+               </View>
                <TouchableOpacity
                   style={styles.requestButton}
                   activeOpacity={0.8}

@@ -90,3 +90,94 @@ exports.seedInventory = async (req, res) => {
       });
    }
 };
+
+/**
+ * @desc    Update inventory item by ID
+ * @route   PATCH /api/inventory/:id
+ * @access  Admin
+ */
+exports.updateItem = async (req, res) => {
+   try {
+      const itemId = req.params.id;
+
+      // Find the item first to verify it exists
+      const item = await InventoryItem.findById(itemId);
+
+      if (!item) {
+         return res.status(404).json({
+            success: false,
+            message: 'Inventory item not found',
+         });
+      }
+
+      // Update the item with new values
+      const updatedItem = await InventoryItem.findByIdAndUpdate(
+         itemId,
+         req.body,
+         {
+            new: true, // Return the updated document
+            runValidators: true, // Run model validators
+         }
+      );
+
+      res.status(200).json({
+         success: true,
+         data: updatedItem,
+         message: 'Inventory item updated successfully',
+      });
+   } catch (error) {
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+         return res.status(400).json({
+            success: false,
+            message: 'Validation error: Please check your data format',
+            error:
+               process.env.NODE_ENV === 'development'
+                  ? error.message
+                  : undefined,
+         });
+      }
+
+      // General server error
+      res.status(500).json({
+         success: false,
+         message: 'Error updating inventory item',
+         error:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+   }
+};
+
+/**
+ * @desc    Delete inventory item by ID
+ * @route   DELETE /api/inventory/:id
+ * @access  Admin
+ */
+exports.deleteItem = async (req, res) => {
+   try {
+      const itemId = req.params.id;
+
+      // Find and delete the item
+      const deletedItem = await InventoryItem.findByIdAndDelete(itemId);
+
+      if (!deletedItem) {
+         return res.status(404).json({
+            success: false,
+            message: 'Inventory item not found',
+         });
+      }
+
+      res.status(200).json({
+         success: true,
+         message: 'Inventory item deleted successfully',
+         data: deletedItem,
+      });
+   } catch (error) {
+      res.status(500).json({
+         success: false,
+         message: 'Error deleting inventory item',
+         error:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+   }
+};

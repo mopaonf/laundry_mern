@@ -183,7 +183,8 @@ export default function OrdersScreen() {
                   </ThemedText>
                </View>
             </View>
-            {/* Progress Bar */}            <View style={styles.progressContainer}>
+            {/* Progress Bar */}
+            <View style={styles.progressContainer}>
                <View style={styles.progressBar}>
                   {[1, 2, 3, 4].map((stage) => {
                      const progressStage = getProgressStage(item.status);
@@ -227,7 +228,7 @@ export default function OrdersScreen() {
                      Delivered
                   </ThemedText>
                </View>
-            </View>{' '}
+            </View>
             {/* Order Items */}
             <View style={styles.orderItems}>
                {item.items.map((orderItem, idx) => (
@@ -289,7 +290,8 @@ export default function OrdersScreen() {
                onPress={() => setSearchVisible(!searchVisible)}
             >
                <MaterialIcons name="search" size={30} color="#E0E0E0" />
-            </TouchableOpacity>         </View>
+            </TouchableOpacity>
+         </View>
          {/* Order List */}
          <FlatList
             data={orders}

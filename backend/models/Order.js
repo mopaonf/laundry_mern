@@ -49,6 +49,14 @@ const orderSchema = new mongoose.Schema({
       type: Date,
       default: Date.now,
    },
+   paymentStatus: {
+      type: String,
+      enum: ['PENDING', 'SUCCESSFUL', 'FAILED', 'NOT_REQUIRED'],
+      default: 'PENDING',
+   },
+   paymentReference: {
+      type: String,
+   },
 });
 
 const Order = mongoose.model('Order', orderSchema);

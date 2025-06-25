@@ -133,7 +133,7 @@ export default function CurtainsScreen() {
                      dispatch({
                         type: 'ADD_ITEM',
                         item: {
-                           id: item.id,
+                           id: item._id || item.id, // Use MongoDB _id which is guaranteed unique
                            name: item.name,
                            price: Number(item.basePrice),
                            image: item.image,

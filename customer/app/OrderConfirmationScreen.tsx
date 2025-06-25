@@ -14,11 +14,16 @@ import { format } from 'date-fns';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ApiService } from '@/utils/api.service';
 
 export default function OrderConfirmationScreen() {
    const router = useRouter();
    const params = useLocalSearchParams();
    const [loading, setLoading] = useState(false);
+   const [paymentStatus, setPaymentStatus] = useState(
+      (params.paymentStatus as string) || ''
+   );
+   const paymentReference = params.paymentReference as string;
 
    // Get orderId and pickupDate from params
    const orderId = params.orderId as string;
@@ -36,19 +41,41 @@ export default function OrderConfirmationScreen() {
       return () => clearTimeout(timer);
    }, []);
 
+   // Poll payment status if pending
+   useEffect(() => {
+      let interval: NodeJS.Timeout | null = null;
+      if (paymentStatus === 'PENDING' && paymentReference) {
+         setLoading(true);
+         interval = setInterval(async () => {
+            // Use the new sync endpoint
+            const res = await ApiService.post(
+               `/api/payment-sync/sync-status/${paymentReference}`
+            );
+            if (res.success && res.data?.status) {
+               setPaymentStatus(res.data.status);
+               if (['SUCCESSFUL', 'FAILED'].includes(res.data.status)) {
+                  setLoading(false);
+                  if (interval) clearInterval(interval);
+               }
+            }
+         }, 5000);
+      }
+      return () => {
+         if (interval) clearInterval(interval);
+      };
+   }, [paymentStatus, paymentReference]);
+
    const handleContactSupport = () => {
       // In a real app, this could be a phone number or WhatsApp link
       Linking.openURL('tel:+123456789');
    };
 
    const handleTrackOrder = () => {
-      // Navigate to order tracking screen (to be implemented later)
-      router.push('/(tabs)');
+      router.navigate('/(tabs)');
    };
 
    const handleBackToHome = () => {
-      // Navigate back to home screen
-      router.push('/(tabs)');
+      router.navigate('/(tabs)');
    };
 
    return (
@@ -73,17 +100,36 @@ export default function OrderConfirmationScreen() {
                      <View style={styles.successContainer}>
                         <View style={styles.successIconContainer}>
                            <MaterialIcons
-                              name="check-circle"
+                              name={
+                                 paymentStatus === 'SUCCESSFUL'
+                                    ? 'check-circle'
+                                    : paymentStatus === 'FAILED'
+                                    ? 'cancel'
+                                    : 'hourglass-bottom'
+                              }
                               size={80}
-                              color="#4CAF50"
+                              color={
+                                 paymentStatus === 'SUCCESSFUL'
+                                    ? '#4CAF50'
+                                    : paymentStatus === 'FAILED'
+                                    ? '#F44336'
+                                    : '#FFC107'
+                              }
                            />
                         </View>
                         <ThemedText style={styles.successTitle}>
-                           Order Placed Successfully!
+                           {paymentStatus === 'SUCCESSFUL'
+                              ? 'Order Paid Successfully!'
+                              : paymentStatus === 'FAILED'
+                              ? 'Payment Failed'
+                              : 'Awaiting Payment Confirmation...'}
                         </ThemedText>
                         <ThemedText style={styles.successMessage}>
-                           Your laundry order has been confirmed. We'll take
-                           good care of your clothes!
+                           {paymentStatus === 'SUCCESSFUL'
+                              ? "Your laundry order has been confirmed and paid. We'll take good care of your clothes!"
+                              : paymentStatus === 'FAILED'
+                              ? 'Your payment was not successful. Please try again.'
+                              : 'Please complete the payment on your phone. This may take a few moments.'}
                         </ThemedText>
                      </View>
 
@@ -142,7 +188,13 @@ export default function OrderConfirmationScreen() {
                               color="#28B9F4"
                            />
                            <ThemedText style={styles.paymentText}>
-                              Payment will be collected upon delivery
+                              {paymentStatus === 'SUCCESSFUL' &&
+                                 'Payment Successful'}
+                              {paymentStatus === 'FAILED' && 'Payment Failed'}
+                              {paymentStatus === 'PENDING' &&
+                                 'Waiting for payment confirmation...'}
+                              {!paymentStatus &&
+                                 'Payment will be collected upon delivery'}
                            </ThemedText>
                         </ThemedView>
                      </ThemedView>

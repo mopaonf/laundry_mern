@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
    StyleSheet,
    View,
@@ -7,6 +7,7 @@ import {
    StatusBar,
    Dimensions,
    FlatList,
+   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -14,6 +15,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ApiService } from '@/utils/api.service';
+import { useAuthStore } from '@/store/auth.store';
 
 // Types for transaction history
 interface Transaction {
@@ -40,69 +43,13 @@ interface ExpenseSummary {
    percentage: number;
 }
 
-// Sample transaction data
-const transactions: Transaction[] = [
-   {
-      id: '1',
-      type: 'payment',
-      amount: '15,000 FCFA',
-      description: 'Laundry Service - Full Load',
-      date: 'Jun 12, 2023',
-      service: 'Express Wash',
-      status: 'completed',
-   },
-   {
-      id: '2',
-      type: 'payment',
-      amount: '7,500 FCFA',
-      description: 'Dry Cleaning - 3 Items',
-      date: 'May 29, 2023',
-      service: 'Regular Cleaning',
-      status: 'completed',
-   },
-   {
-      id: '3',
-      type: 'payment',
-      amount: '12,500 FCFA',
-      description: 'Household Linens',
-      date: 'May 15, 2023',
-      service: 'Regular Cleaning',
-      status: 'completed',
-   },
-   {
-      id: '4',
-      type: 'payment',
-      amount: '9,000 FCFA',
-      description: 'Curtain Cleaning - 2 Sets',
-      date: 'Apr 30, 2023',
-      service: 'Regular Cleaning',
-      status: 'completed',
-   },
-   {
-      id: '5',
-      type: 'payment',
-      amount: '18,500 FCFA',
-      description: 'Full Home Service',
-      date: 'Apr 10, 2023',
-      service: 'Premium Package',
-      status: 'completed',
-   },
-];
-
 // Sample payment methods
 const paymentMethods: PaymentMethod[] = [
    {
-      id: '1',
-      type: 'card',
-      name: 'Visa •••• 4242',
-      icon: 'cc-visa',
-      isDefault: true,
-   },
-   {
       id: '2',
-      type: 'card',
-      name: 'Mastercard •••• 5555',
-      icon: 'cc-mastercard',
+      type: 'mobile',
+      name: 'Orange Money',
+      icon: 'mobile',
    },
    {
       id: '3',
@@ -119,34 +66,64 @@ const expenseSummary: ExpenseSummary[] = [
    { month: 'Apr', amount: '27,500', percentage: 44 },
 ];
 
-export default function WalletScreen() {
+export default function TransactionScreen() {
+   const { token } = useAuthStore();
+   const [transactions, setTransactions] = useState<any[]>([]);
+   const [loading, setLoading] = useState(true);
+
+   useEffect(() => {
+      const fetchTransactions = async () => {
+         setLoading(true);
+         const res = await ApiService.get(
+            '/api/transactions/my',
+            token || undefined
+         );
+         if (res.success && Array.isArray(res.data?.data)) {
+            setTransactions(res.data.data);
+         } else {
+            setTransactions([]);
+         }
+         setLoading(false);
+      };
+      fetchTransactions();
+   }, [token]);
+
    // Render functions for different sections
-   const renderTransaction = ({ item }: { item: Transaction }) => (
+   const renderTransaction = ({ item }: { item: any }) => (
       <TouchableOpacity style={styles.transactionCard}>
          <View style={styles.transactionIconContainer}>
             <MaterialIcons name="receipt-long" size={24} color="#28B9F4" />
          </View>
          <View style={styles.transactionDetails}>
             <ThemedText style={styles.transactionTitle}>
-               {item.description}
+               {item.description || 'Laundry Order Payment'}
             </ThemedText>
+            {/* Show order date below description */}
             <ThemedText style={styles.transactionDate}>
-               {item.date} • {item.service}
+               {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
             </ThemedText>
+            {/* Show categories if available */}
+            {item.orderId && item.orderId.items && (
+               <ThemedText style={styles.transactionCategory}>
+                  {item.orderId.items.map((i: any) => i.name).join(', ')}
+               </ThemedText>
+            )}
          </View>
          <View style={styles.transactionAmount}>
-            <ThemedText style={styles.amountText}>{item.amount}</ThemedText>
+            <ThemedText style={styles.amountText}>{item.amount} F</ThemedText>
             <View
                style={[
                   styles.statusBadge,
-                  item.status === 'completed'
+                  item.status === 'SUCCESSFUL'
                      ? styles.completedBadge
-                     : item.status === 'pending'
+                     : item.status === 'PENDING'
                      ? styles.pendingBadge
                      : styles.failedBadge,
                ]}
             >
-               <ThemedText style={styles.statusText}>{item.status}</ThemedText>
+               <ThemedText style={styles.statusText}>
+                  {item.status?.toLowerCase()}
+               </ThemedText>
             </View>
          </View>
       </TouchableOpacity>
@@ -173,7 +150,7 @@ export default function WalletScreen() {
 
          {/* Fixed Header */}
          <ThemedView style={styles.header}>
-            <ThemedText style={styles.headerTitle}>Payment History</ThemedText>
+            <ThemedText style={styles.headerTitle}>Transactions</ThemedText>
             <TouchableOpacity style={styles.iconButton}>
                <MaterialIcons name="settings" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -240,13 +217,19 @@ export default function WalletScreen() {
                <ThemedText style={styles.sectionTitle}>
                   Recent Transactions
                </ThemedText>
-               <FlatList
-                  data={transactions}
-                  renderItem={renderTransaction}
-                  keyExtractor={(item) => item.id}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.transactionsList}
-               />
+               {loading ? (
+                  <View style={{ padding: 20 }}>
+                     <ActivityIndicator size="small" color="#28B9F4" />
+                  </View>
+               ) : (
+                  <FlatList
+                     data={transactions}
+                     renderItem={renderTransaction}
+                     keyExtractor={(item) => item._id}
+                     scrollEnabled={false}
+                     contentContainerStyle={styles.transactionsList}
+                  />
+               )}
 
                <TouchableOpacity style={styles.viewAllButton}>
                   <ThemedText style={styles.viewAllText}>
@@ -438,6 +421,11 @@ const styles = StyleSheet.create({
    transactionDate: {
       fontSize: 12,
       color: '#999',
+      marginTop: 2,
+   },
+   transactionCategory: {
+      fontSize: 12,
+      color: '#28B9F4',
       marginTop: 2,
    },
    transactionAmount: {

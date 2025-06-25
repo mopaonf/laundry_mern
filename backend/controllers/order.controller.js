@@ -1,5 +1,7 @@
 const Order = require('../models/Order');
 const User = require('../models/User');
+const campayService = require('../services/campayService');
+const { createTransactionForOrder } = require('./transaction.util');
 
 /**
  * @desc    Create a new order
@@ -8,7 +10,8 @@ const User = require('../models/User');
  */
 exports.createOrder = async (req, res) => {
    try {
-      const { items, pickupDate, notes, total } = req.body;
+      const { items, pickupDate, notes, total, payWithMobile, phoneNumber } =
+         req.body;
       let customerId;
 
       // If the request is from a customer, use their own ID
@@ -45,15 +48,47 @@ exports.createOrder = async (req, res) => {
             success: false,
             message: 'Order must include at least one item',
          });
-      }
-
-      // Transform items to match our schema (convert id to itemId)
+      } // Transform items to match our schema (handle both id and itemId formats)
       const transformedItems = items.map((item) => ({
-         itemId: item.id,
+         itemId: item.itemId || item.id, // Accept either itemId or id
          name: item.name,
          price: item.price,
          quantity: item.quantity,
       }));
+
+      let paymentStatus = 'NOT_REQUIRED';
+      let paymentReference = undefined;
+      // If payment is requested, initiate Campay collection
+      if (payWithMobile && phoneNumber) {
+         try {
+            const paymentResult = await campayService.collect(
+               total,
+               phoneNumber,
+               'Laundry Order Payment'
+            );
+            paymentReference =
+               paymentResult.reference || paymentResult.external_reference;
+            paymentStatus = 'PENDING';
+            // Create transaction record
+            await createTransactionForOrder({
+               userId: customerId,
+               orderId: null, // Will update after order is created
+               reference: paymentReference,
+               amount: total,
+               phoneNumber,
+               status: 'PENDING',
+               operator: paymentResult.operator,
+               ussd_code: paymentResult.ussd_code,
+               description: 'Laundry Order Payment',
+            });
+         } catch (err) {
+            return res.status(500).json({
+               success: false,
+               message: 'Payment initiation failed',
+               error: err.message,
+            });
+         }
+      }
 
       // Create the order
       const order = await Order.create({
@@ -62,7 +97,17 @@ exports.createOrder = async (req, res) => {
          pickupDate,
          notes,
          total,
+         paymentStatus,
+         paymentReference,
       });
+      // If paymentReference exists, update transaction with orderId
+      if (paymentReference) {
+         const Transaction = require('../models/Transaction');
+         await Transaction.findOneAndUpdate(
+            { reference: paymentReference },
+            { orderId: order._id }
+         );
+      }
 
       res.status(201).json({
          success: true,

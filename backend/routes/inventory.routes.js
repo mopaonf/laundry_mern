@@ -19,4 +19,20 @@ router.post(
    inventoryController.seedInventory
 );
 
+// PATCH /api/inventory/:id - Update inventory item (admin only)
+router.patch(
+   '/:id',
+   protect,
+   authorize('admin'),
+   inventoryController.updateItem
+);
+
+// DELETE /api/inventory/:id - Delete inventory item (admin only)
+router.delete(
+   '/:id',
+   protect,
+   authorize('admin'),
+   inventoryController.deleteItem
+);
+
 module.exports = router;

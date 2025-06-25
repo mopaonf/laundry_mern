@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '@/store/auth.store';
 import { router } from 'expo-router';
+import { useFonts } from 'expo-font';
 
 const AuthScreen: React.FC = () => {
    const [isLogin, setIsLogin] = useState(true);
@@ -161,6 +162,14 @@ const AuthScreen: React.FC = () => {
       setIsLogin((prev) => !prev);
       setErrors({}); // Clear errors when switching modes
    };
+
+   const [fontsLoaded] = useFonts({
+      Pacifico: require('@/assets/fonts/Pacifico-Regular.ttf'),
+   });
+
+   if (!fontsLoaded) {
+      return null;
+   }
 
    return (
       <KeyboardAvoidingView
@@ -323,6 +332,7 @@ const styles = StyleSheet.create({
       marginBottom: 28,
       alignSelf: 'center',
       letterSpacing: 0.5,
+      fontFamily: 'Pacifico', // Use Pacifico font
    },
    input: {
       borderWidth: 1,
@@ -369,7 +379,7 @@ const styles = StyleSheet.create({
       letterSpacing: 0.5,
    },
    toggleText: {
-      color: '#27AE60',
+      color: '#28B9F4', // Changed to your blue color
       textAlign: 'center',
       marginTop: 16,
       fontSize: 16,

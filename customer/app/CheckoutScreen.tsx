@@ -28,6 +28,9 @@ export default function CheckoutScreen() {
    const { user, token } = useAuthStore();
    const [loading, setLoading] = useState(false);
    const [notes, setNotes] = useState('');
+   const [payWithMobile, setPayWithMobile] = useState(false);
+   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
+   const [location, setLocation] = useState('');
 
    // Calculate tomorrow as the default pickup date
    const tomorrow = new Date();
@@ -89,19 +92,20 @@ export default function CheckoutScreen() {
       }
 
       try {
-         setLoading(true);
-
-         // Create order data
+         setLoading(true); // Create order data
          const orderData = {
             items: state.items.map((item) => ({
-               id: item.id,
+               itemId: item.id, // Changed from id to itemId to match backend schema
                name: item.name,
                price: item.price,
                quantity: item.quantity,
             })),
             pickupDate: pickupDate.toISOString(),
+            location, // Add location here
             notes,
             total: total,
+            payWithMobile: payWithMobile,
+            phoneNumber: payWithMobile ? phoneNumber : undefined,
          };
 
          // Place order API call
@@ -121,6 +125,8 @@ export default function CheckoutScreen() {
                params: {
                   orderId: response.data?.data?._id,
                   pickupDate: pickupDate.toISOString(),
+                  paymentStatus: response.data?.data?.paymentStatus,
+                  paymentReference: response.data?.data?.paymentReference,
                },
             });
          } else {
@@ -195,8 +201,11 @@ export default function CheckoutScreen() {
                            </ThemedText>
                            <ThemedText style={styles.itemQuantity}>
                               x{item.quantity}
-                           </ThemedText>                           <ThemedText style={styles.itemPrice}>
-                              {`${(item.price * item.quantity).toLocaleString()} FCFA`}
+                           </ThemedText>
+                           <ThemedText style={styles.itemPrice}>
+                              {`${(
+                                 item.price * item.quantity
+                              ).toLocaleString()} FCFA`}
                            </ThemedText>
                         </ThemedView>
                      ))}
@@ -213,6 +222,26 @@ export default function CheckoutScreen() {
                      <ThemedText style={styles.sectionTitle}>
                         Pickup Details
                      </ThemedText>
+
+                     {/* Location Input */}
+                     <View style={{ marginBottom: 12 }}>
+                        <ThemedText
+                           style={{
+                              fontSize: 16,
+                              color: '#333',
+                              marginBottom: 8,
+                           }}
+                        >
+                           Pickup Location
+                        </ThemedText>
+                        <TextInput
+                           style={styles.locationInput}
+                           placeholder="Enter pickup address/location (e.g. home, office, etc.)"
+                           placeholderTextColor="#999"
+                           value={location}
+                           onChangeText={setLocation}
+                        />
+                     </View>
 
                      <TouchableOpacity
                         style={styles.datePickerButton}
@@ -279,16 +308,42 @@ export default function CheckoutScreen() {
                      />
                   </ThemedView>
 
-                  {/* Payment Method Section - To be implemented later */}
+                  {/* Payment Method Section */}
                   <ThemedView style={styles.section}>
                      <ThemedText style={styles.sectionTitle}>
                         Payment Method
                      </ThemedText>
-                     <ThemedView style={styles.paymentPlaceholder}>
-                        <ThemedText style={styles.paymentText}>
-                           Payment will be collected on delivery
+                     <TouchableOpacity
+                        style={{
+                           flexDirection: 'row',
+                           alignItems: 'center',
+                           marginBottom: 10,
+                        }}
+                        onPress={() => setPayWithMobile((v) => !v)}
+                     >
+                        <MaterialIcons
+                           name={
+                              payWithMobile
+                                 ? 'radio-button-checked'
+                                 : 'radio-button-unchecked'
+                           }
+                           size={22}
+                           color="#28B9F4"
+                        />
+                        <ThemedText style={{ marginLeft: 10 }}>
+                           Pay with Mobile Money
                         </ThemedText>
-                     </ThemedView>
+                     </TouchableOpacity>
+                     {payWithMobile && (
+                        <TextInput
+                           style={styles.notesInput}
+                           placeholder="Enter your mobile number"
+                           placeholderTextColor="#999"
+                           keyboardType="phone-pad"
+                           value={phoneNumber}
+                           onChangeText={setPhoneNumber}
+                        />
+                     )}
                   </ThemedView>
                </ScrollView>
 
@@ -457,5 +512,15 @@ const styles = StyleSheet.create({
       color: '#fff',
       fontSize: 18,
       fontWeight: 'bold',
+   },
+   locationInput: {
+      borderWidth: 1,
+      borderColor: '#E0E0E0',
+      borderRadius: 8,
+      padding: 15,
+      fontSize: 16,
+      color: '#333',
+      backgroundColor: '#F9F9F9',
+      marginBottom: 2,
    },
 });
