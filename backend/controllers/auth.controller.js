@@ -46,6 +46,7 @@ exports.register = async (req, res) => {
       // Return user data (without password) and token
       res.status(201).json({
          _id: user._id,
+         customerId: user.customerId,
          name: user.name,
          email: user.email,
          phone: user.phone,
@@ -91,6 +92,7 @@ exports.login = async (req, res) => {
 
       res.json({
          _id: user._id,
+         customerId: user.customerId,
          name: user.name,
          email: user.email,
          phone: user.phone,
@@ -155,6 +157,7 @@ exports.updateProfile = async (req, res) => {
          success: true,
          data: {
             _id: updatedUser._id,
+            customerId: updatedUser.customerId,
             name: updatedUser.name,
             email: updatedUser.email,
             phone: updatedUser.phone,
@@ -235,6 +238,7 @@ exports.updateUser = async (req, res) => {
          success: true,
          data: {
             _id: updatedUser._id,
+            customerId: updatedUser.customerId,
             name: updatedUser.name,
             email: updatedUser.email,
             phone: updatedUser.phone,

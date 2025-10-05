@@ -21,17 +21,17 @@ const BACKEND_PORT = '5000';
 
 // Based on connectivity test results, we found working IPs
 // These are working IP patterns for local development
-export const DEVICE_API_URL = 'http://172.20.10.5:5000';
+export const DEVICE_API_URL = 'http://192.168.5.1:5000';
 export const FALLBACK_IPS = [
    `http://localhost:${BACKEND_PORT}`,
    `http://127.0.0.1:${BACKEND_PORT}`,
-   `http://172.20.10.5:${BACKEND_PORT}`,
+   `http://192.168.5.1:${BACKEND_PORT}`,
    `http://192.168.137.1:${BACKEND_PORT}`,
    `http://10.0.2.2:${BACKEND_PORT}`, // Android emulator -> host localhost
 ];
 
 // For emulators, default to localhost with fallbacks
-export const EMULATOR_API_URL = `http://172.20.10.5:${BACKEND_PORT}`;
+export const EMULATOR_API_URL = `http://192.168.5.1:${BACKEND_PORT}`;
 
 // Determine API URL based on environment
 export const API_URL = isProduction

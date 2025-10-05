@@ -36,43 +36,7 @@ interface OrderItem {
    createdAt: string;
 }
 
-// For display purposes
-const orders: OrderItem[] = [
-   {
-      id: '1',
-      orderNumber: '#12345',
-      date: 'June 5, 2025',
-      status: 'In Progress',
-      progressStage: 2, // Washing stage
-      items: [
-         { name: 'T-Shirts', quantity: 3, icon: 'checkroom' },
-         { name: 'Pants', quantity: 2, icon: 'dry-cleaning' },
-         { name: 'Towels', quantity: 4, icon: 'waves' },
-      ],
-   },
-   {
-      id: '2',
-      orderNumber: '#12346',
-      date: 'June 3, 2025',
-      status: 'Ready for Pickup',
-      progressStage: 3, // Ready stage
-      items: [
-         { name: 'Shirts', quantity: 5, icon: 'checkroom' },
-         { name: 'Bed Sheets', quantity: 2, icon: 'bed' },
-      ],
-   },
-   {
-      id: '3',
-      orderNumber: '#12338',
-      date: 'May 28, 2025',
-      status: 'Completed',
-      progressStage: 4, // Delivered stage
-      items: [
-         { name: 'Curtains', quantity: 2, icon: 'curtains' },
-         { name: 'Blankets', quantity: 1, icon: 'bed' },
-      ],
-   },
-];
+// Hardcoded orders removed - using state instead
 
 export default function OrdersScreen() {
    const { token, user } = useAuthStore();

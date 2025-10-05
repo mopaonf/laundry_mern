@@ -180,6 +180,9 @@ export default function Home() {
                                     Order ID
                                  </th>
                                  <th className="px-6 py-3 text-left font-semibold">
+                                    Customer ID
+                                 </th>
+                                 <th className="px-6 py-3 text-left font-semibold">
                                     Customer
                                  </th>
                                  <th className="px-6 py-3 text-left font-semibold">
@@ -201,6 +204,11 @@ export default function Home() {
                                  >
                                     <td className="px-6 py-3 font-mono">
                                        {order.id.substring(order.id.length - 6)}
+                                    </td>
+                                    <td className="px-6 py-3">
+                                       <span className="text-sm font-mono font-bold text-[#28B9F4] bg-[#E6F7FF] px-3 py-1 rounded-full">
+                                          {order.customerId}
+                                       </span>
                                     </td>
                                     <td className="px-6 py-3">
                                        {order.customer}
@@ -246,6 +254,14 @@ export default function Home() {
                                  </span>
                               </div>
                               <div className="flex flex-col space-y-1 text-sm">
+                                 <div className="flex justify-between">
+                                    <span className="text-gray-500">
+                                       Customer ID:
+                                    </span>
+                                    <span className="text-xs font-mono font-bold text-[#28B9F4] bg-[#E6F7FF] px-2 py-1 rounded-full">
+                                       {order.customerId}
+                                    </span>
+                                 </div>
                                  <div className="flex justify-between">
                                     <span className="text-gray-500">
                                        Customer:

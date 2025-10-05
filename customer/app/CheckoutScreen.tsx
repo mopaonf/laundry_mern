@@ -28,9 +28,9 @@ export default function CheckoutScreen() {
    const { user, token } = useAuthStore();
    const [loading, setLoading] = useState(false);
    const [notes, setNotes] = useState('');
+   const [location, setLocation] = useState('');
    const [payWithMobile, setPayWithMobile] = useState(false);
    const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
-   const [location, setLocation] = useState('');
 
    // Calculate tomorrow as the default pickup date
    const tomorrow = new Date();
@@ -47,7 +47,7 @@ export default function CheckoutScreen() {
       0
    );
 
-   const handleDateChange = (event, selectedDate) => {
+   const handleDateChange = (event: any, selectedDate?: Date) => {
       setShowDatePicker(false);
       if (selectedDate) {
          // Keep the same time when changing the date
@@ -59,7 +59,7 @@ export default function CheckoutScreen() {
       }
    };
 
-   const handleTimeChange = (event, selectedTime) => {
+   const handleTimeChange = (event: any, selectedTime?: Date) => {
       setShowTimePicker(false);
       if (selectedTime) {
          // Keep the same date when changing the time
@@ -472,6 +472,16 @@ const styles = StyleSheet.create({
       fontSize: 16,
       color: '#333',
    },
+   locationInput: {
+      borderWidth: 1,
+      borderColor: '#E0E0E0',
+      borderRadius: 8,
+      padding: 15,
+      fontSize: 16,
+      color: '#333',
+      backgroundColor: '#F9F9F9',
+      marginBottom: 2,
+   },
    notesInput: {
       borderWidth: 1,
       borderColor: '#E0E0E0',
@@ -512,15 +522,5 @@ const styles = StyleSheet.create({
       color: '#fff',
       fontSize: 18,
       fontWeight: 'bold',
-   },
-   locationInput: {
-      borderWidth: 1,
-      borderColor: '#E0E0E0',
-      borderRadius: 8,
-      padding: 15,
-      fontSize: 16,
-      color: '#333',
-      backgroundColor: '#F9F9F9',
-      marginBottom: 2,
    },
 });

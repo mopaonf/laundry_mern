@@ -97,7 +97,9 @@ export default function CustomersPage() {
       return (
          customer.name.toLowerCase().includes(query) ||
          customer.phone.toLowerCase().includes(query) ||
-         (customer.email && customer.email.toLowerCase().includes(query))
+         (customer.email && customer.email.toLowerCase().includes(query)) ||
+         (customer.customerId &&
+            customer.customerId.toLowerCase().includes(query))
       );
    });
 
@@ -317,7 +319,7 @@ export default function CustomersPage() {
                <input
                   type="text"
                   className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#28B9F4] focus:border-gray-100 transition-colors"
-                  placeholder="Search by name, phone or email..."
+                  placeholder="Search by ID, name, phone or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                />
@@ -338,6 +340,12 @@ export default function CustomersPage() {
             <table className="min-w-full divide-y divide-gray-200">
                <thead className="bg-gray-50">
                   <tr>
+                     <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                     >
+                        Customer ID
+                     </th>
                      <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -377,6 +385,11 @@ export default function CustomersPage() {
                            key={customer._id}
                            className="hover:bg-gray-50 transition-colors duration-150"
                         >
+                           <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-mono font-bold text-[#28B9F4] bg-[#E6F7FF] px-3 py-1 rounded-full inline-block">
+                                 {customer.customerId || 'N/A'}
+                              </div>
+                           </td>
                            <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-[#E6F7FF] flex items-center justify-center">
@@ -432,7 +445,7 @@ export default function CustomersPage() {
                   ) : (
                      <tr>
                         <td
-                           colSpan={5}
+                           colSpan={6}
                            className="px-6 py-12 text-center text-gray-500"
                         >
                            No customers found matching your search criteria
@@ -455,11 +468,16 @@ export default function CustomersPage() {
                         <div className="h-12 w-12 rounded-full bg-[#E6F7FF] flex items-center justify-center mr-4">
                            <FiUser className="text-[#28B9F4]" size={24} />
                         </div>
-                        <div>
-                           <h3 className="font-medium text-gray-900">
-                              {customer.name}
-                           </h3>
-                           <p className="text-sm text-gray-500 flex items-center mt-1">
+                        <div className="flex-1">
+                           <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium text-gray-900">
+                                 {customer.name}
+                              </h3>
+                              <span className="text-xs font-mono font-bold text-[#28B9F4] bg-[#E6F7FF] px-2 py-1 rounded-full">
+                                 {customer.customerId || 'N/A'}
+                              </span>
+                           </div>
+                           <p className="text-sm text-gray-500 flex items-center">
                               <FiMail
                                  className="mr-1 text-gray-400"
                                  size={12}

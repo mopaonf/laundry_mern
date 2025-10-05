@@ -240,7 +240,7 @@ exports.getDashboardStats = async (req, res) => {
 
       // Get recent orders (limit to 5 most recent)
       const recentOrders = await Order.find()
-         .populate('customerId', 'name')
+         .populate('customerId', 'name customerId')
          .sort({ createdAt: -1 })
          .limit(5);
 
@@ -248,6 +248,7 @@ exports.getDashboardStats = async (req, res) => {
       const formattedRecentOrders = recentOrders.map((order) => ({
          id: order._id,
          customer: order.customerId?.name || 'Unknown Customer',
+         customerId: order.customerId?.customerId || 'N/A',
          status: order.status,
          date: new Date(order.createdAt).toISOString().split('T')[0],
          total: `${order.total.toLocaleString()} FCFA`,

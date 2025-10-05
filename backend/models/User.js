@@ -1,7 +1,14 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { generateCustomerId } = require('../utils/customerIdGenerator');
 
 const userSchema = new mongoose.Schema({
+   customerId: {
+      type: String,
+      unique: true,
+      sparse: true, // Only applies to customers, allows null for other roles
+      trim: true,
+   },
    name: {
       type: String,
       required: [true, 'Name is required'],
@@ -55,6 +62,19 @@ const userSchema = new mongoose.Schema({
       default: Date.now,
    },
    lastLogin: Date,
+});
+
+// Pre-save hook to generate customer ID for new customers
+userSchema.pre('save', async function (next) {
+   // Generate customer ID for new customers
+   if (this.isNew && this.role === 'customer' && !this.customerId) {
+      try {
+         this.customerId = await generateCustomerId();
+      } catch (error) {
+         return next(error);
+      }
+   }
+   next();
 });
 
 // Pre-save hook to hash password

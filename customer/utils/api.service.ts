@@ -53,7 +53,7 @@ export class ApiService {
 
          console.log(`[API] ${method} ${url}`);
 
-         const headers: HeadersInit = {
+         const headers: Record<string, string> = {
             ...config.headers,
          };
 
@@ -71,21 +71,21 @@ export class ApiService {
          }
 
          const response = await fetch(url, options);
-         const responseData = await response.json().catch(() => ({}));
+         const responseData: any = await response.json().catch(() => ({}));
 
          console.log(`[API] Response:`, response.status, responseData);
 
          if (response.ok) {
             return {
                success: true,
-               data: responseData,
+               data: responseData as T,
                status: response.status,
             };
          }
 
          return {
             success: false,
-            error: responseData.message || 'Unknown error occurred',
+            error: responseData?.message || 'Unknown error occurred',
             status: response.status,
          };
       } catch (error) {

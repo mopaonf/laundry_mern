@@ -155,6 +155,13 @@ export default function MoreScreen() {
                         style={styles.profileImage}
                         contentFit="cover"
                      />
+                     {user?.customerId && (
+                        <View style={styles.customerIdBadge}>
+                           <ThemedText style={styles.customerIdText}>
+                              {user.customerId}
+                           </ThemedText>
+                        </View>
+                     )}
                   </View>
                   <View style={styles.userInfo}>
                      <ThemedText style={styles.userName}>
@@ -264,6 +271,23 @@ const styles = StyleSheet.create({
       fontSize: 14,
       fontWeight: '500',
       marginLeft: 6,
+   },
+   customerIdBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 10,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderWidth: 2,
+      borderColor: '#28B9F4',
+   },
+   customerIdText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: '#28B9F4',
+      fontFamily: 'monospace',
    },
 
    // Menu Items

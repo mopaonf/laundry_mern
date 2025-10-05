@@ -64,7 +64,7 @@ The app was encountering a "JSON Parse error: Unexpected character: <" when tryi
 
 1. Run your backend server on your local machine
 2. Find your machine's IP address (shown in the check-api script output)
-3. Enter that IP address with port (e.g., http://192.168.1.100:5000) in the Server Configuration screen
+3. Enter that IP address with port (e.g., http://192.168.5.100:5000) in the Server Configuration screen
 4. Test the connectivity before saving
 5. The app will now use your local backend server
 

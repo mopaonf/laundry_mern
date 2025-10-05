@@ -262,11 +262,20 @@ export default function HomeScreen() {
          {/* Fixed Header Section - Always visible */}
          <ThemedView style={styles.headerContainer}>
             <View style={styles.userInfoContainer}>
-               <View style={styles.profileCircle}>
-                  <Image
-                     source={require('@/assets/images/ges.webp')}
-                     style={styles.profileImage}
-                  />
+               <View style={styles.profileContainer}>
+                  <View style={styles.profileCircle}>
+                     <Image
+                        source={require('@/assets/images/ges.webp')}
+                        style={styles.profileImage}
+                     />
+                  </View>
+                  {user?.customerId && (
+                     <View style={styles.customerIdBadge}>
+                        <ThemedText style={styles.customerIdText}>
+                           {user.customerId}
+                        </ThemedText>
+                     </View>
+                  )}
                </View>
                <View>
                   <ThemedText style={styles.greetingText}>
@@ -397,7 +406,7 @@ export default function HomeScreen() {
                   <ThemedText>Loading items...</ThemedText>
                ) : (
                   <FlatList
-                     data={items}
+                     data={items.slice(0, 5)}
                      renderItem={renderProductItem}
                      keyExtractor={(item) => item.id}
                      scrollEnabled={false}
@@ -447,13 +456,33 @@ const styles = StyleSheet.create({
       flex: 1, // Make sure this container can grow as needed
       marginRight: 10, // Add some right margin to prevent text from touching icons
    },
+   profileContainer: {
+      position: 'relative',
+      marginRight: 12,
+   },
    profileCircle: {
       width: 48, // Increased from 40 to 48
       height: 48, // Increased from 40 to 48
       borderRadius: 24, // Increased to match width/2
       backgroundColor: '#FFF',
-      marginRight: 12, // Increased margin a bit for better spacing
       overflow: 'hidden',
+   },
+   customerIdBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      backgroundColor: '#E0E0E0',
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderWidth: 1.5,
+      borderColor: '#28B9F4',
+   },
+   customerIdText: {
+      fontSize: 9,
+      fontWeight: 'bold',
+      color: '#28B9F4',
+      fontFamily: 'monospace',
    },
    profileImage: {
       width: '100%',

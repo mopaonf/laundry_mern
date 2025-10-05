@@ -3,6 +3,7 @@ import { apiRequest } from '../utils/api';
 // Define Customer interface based on User model
 export interface Customer {
    _id: string;
+   customerId?: string;
    name: string;
    email: string;
    phone: string;
@@ -27,16 +28,24 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
       const response = await apiRequest('customers');
 
       // Handle different response formats from the backend
+      let customers: Customer[] = [];
       if (response && Array.isArray(response)) {
-         return response;
+         customers = response;
       } else if (response && response.data && Array.isArray(response.data)) {
-         return response.data;
+         customers = response.data;
       } else if (response && response.success && Array.isArray(response.data)) {
-         return response.data;
+         customers = response.data;
       } else {
          console.log('Unexpected response format:', response);
          return [];
       }
+
+      // Sort customers by creation date (oldest first) to show PL1, PL2, PL3... in order
+      return customers.sort((a, b) => {
+         const dateA = new Date(a.createdAt).getTime();
+         const dateB = new Date(b.createdAt).getTime();
+         return dateA - dateB;
+      });
    } catch (error) {
       console.error('Error fetching customers:', error);
       const errorMessage =

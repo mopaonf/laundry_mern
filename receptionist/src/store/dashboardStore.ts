@@ -4,6 +4,7 @@ import { apiRequest } from '../utils/api';
 export type RecentOrder = {
    id: string;
    customer: string;
+   customerId: string;
    status: string;
    date: string;
    total: string;
