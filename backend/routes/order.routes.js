@@ -31,6 +31,30 @@ router.get(
    orderController.getDashboardStats
 );
 
+// PUT /api/orders/:id/pickup - Mark order as picked up
+router.put(
+   '/:id/pickup',
+   protect,
+   authorize('receptionist', 'admin', 'runner'),
+   orderController.markAsPickedUp
+);
+
+// PUT /api/orders/:id/deliver - Mark order as delivered
+router.put(
+   '/:id/deliver',
+   protect,
+   authorize('receptionist', 'admin', 'runner'),
+   orderController.markAsDelivered
+);
+
+// PUT /api/orders/:id/runner-location - Update runner location
+router.put(
+   '/:id/runner-location',
+   protect,
+   authorize('runner', 'receptionist', 'admin'),
+   orderController.updateRunnerLocation
+);
+
 // Update order status
 router.put('/:id/status', async (req, res, next) => {
    try {

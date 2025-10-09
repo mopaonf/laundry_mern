@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // API configuration with sensible defaults
 const API_CONFIG = {
    // Default to the IP address of your PC on the hotspot network
-   baseURL: 'http://192.168.5.1:5000',
+   baseURL: 'http://172.20.10.5:5000',
    timeout: 10000,
    headers: {
       'Content-Type': 'application/json',

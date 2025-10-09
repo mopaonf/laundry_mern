@@ -60,7 +60,7 @@ export default function ApiTestScreen() {
 
          const response = await fetch(`${url}/health`, {
             method: 'GET',
-            signal: controller.signal,
+            signal: controller.signal as any,
          });
 
          clearTimeout(timeoutId);

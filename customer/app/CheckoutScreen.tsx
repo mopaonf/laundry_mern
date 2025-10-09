@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import {
    View,
+   Text,
    StyleSheet,
    TouchableOpacity,
-   ScrollView,
-   SafeAreaView,
-   ActivityIndicator,
-   Alert,
    TextInput,
+   ScrollView,
+   Alert,
+   ActivityIndicator,
    KeyboardAvoidingView,
    Platform,
+   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 
@@ -21,27 +23,46 @@ import { ThemedView } from '@/components/ThemedView';
 import { useWashBasket } from '@/components/WashBasketContext';
 import { useAuthStore } from '@/store/auth.store';
 import { ApiService } from '@/utils/api.service';
+import LocationSelector, { LocationData } from '@/components/LocationSelector';
 
 export default function CheckoutScreen() {
    const router = useRouter();
    const { state, dispatch } = useWashBasket();
    const { user, token } = useAuthStore();
+
    const [loading, setLoading] = useState(false);
    const [notes, setNotes] = useState('');
-   const [location, setLocation] = useState('');
+   const [pickupLocation, setPickupLocation] = useState<LocationData | null>(
+      null
+   );
+   const [dropoffLocation, setDropoffLocation] = useState<LocationData | null>(
+      null
+   );
+   const [deliveryInstructions, setDeliveryInstructions] = useState('');
    const [payWithMobile, setPayWithMobile] = useState(false);
    const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
+   const [showPickupLocationSelector, setShowPickupLocationSelector] =
+      useState(false);
+   const [showDropoffLocationSelector, setShowDropoffLocationSelector] =
+      useState(false);
 
-   // Calculate tomorrow as the default pickup date
+   console.log(
+      'CheckoutScreen render - showPickupLocationSelector:',
+      showPickupLocationSelector
+   );
+   console.log(
+      'CheckoutScreen render - showDropoffLocationSelector:',
+      showDropoffLocationSelector
+   );
+
    const tomorrow = new Date();
    tomorrow.setDate(tomorrow.getDate() + 1);
-   tomorrow.setHours(12, 0, 0, 0); // Set to noon by default
+   tomorrow.setHours(12, 0, 0, 0);
 
    const [pickupDate, setPickupDate] = useState(tomorrow);
    const [showDatePicker, setShowDatePicker] = useState(false);
    const [showTimePicker, setShowTimePicker] = useState(false);
 
-   // Calculate total
    const total = state.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
@@ -50,11 +71,9 @@ export default function CheckoutScreen() {
    const handleDateChange = (event: any, selectedDate?: Date) => {
       setShowDatePicker(false);
       if (selectedDate) {
-         // Keep the same time when changing the date
          const newDate = new Date(selectedDate);
          newDate.setHours(pickupDate.getHours(), pickupDate.getMinutes(), 0, 0);
          setPickupDate(newDate);
-         // Show time picker after selecting date
          setShowTimePicker(true);
       }
    };
@@ -62,7 +81,6 @@ export default function CheckoutScreen() {
    const handleTimeChange = (event: any, selectedTime?: Date) => {
       setShowTimePicker(false);
       if (selectedTime) {
-         // Keep the same date when changing the time
          const newDate = new Date(pickupDate);
          newDate.setHours(
             selectedTime.getHours(),
@@ -72,6 +90,14 @@ export default function CheckoutScreen() {
          );
          setPickupDate(newDate);
       }
+   };
+
+   const handlePickupLocationSelect = (location: LocationData) => {
+      setPickupLocation(location);
+   };
+
+   const handleDropoffLocationSelect = (location: LocationData) => {
+      setDropoffLocation(location);
    };
 
    const placeOrder = async () => {
@@ -85,30 +111,50 @@ export default function CheckoutScreen() {
          return;
       }
 
-      // Validate pickup date is in the future
       if (pickupDate <= new Date()) {
          Alert.alert('Error', 'Pickup date must be in the future');
          return;
       }
 
+      if (!pickupLocation) {
+         Alert.alert('Error', 'Please select a pickup location');
+         return;
+      }
+
+      if (!dropoffLocation) {
+         Alert.alert('Error', 'Please select a delivery location');
+         return;
+      }
+
       try {
-         setLoading(true); // Create order data
+         setLoading(true);
+
          const orderData = {
             items: state.items.map((item) => ({
-               itemId: item.id, // Changed from id to itemId to match backend schema
+               itemId: item.id,
                name: item.name,
                price: item.price,
                quantity: item.quantity,
             })),
             pickupDate: pickupDate.toISOString(),
-            location, // Add location here
+            pickupLocation: {
+               address: pickupLocation.address,
+               coordinates: pickupLocation.coordinates,
+               placeId: pickupLocation.placeId,
+               instructions: deliveryInstructions,
+            },
+            dropoffLocation: {
+               address: dropoffLocation.address,
+               coordinates: dropoffLocation.coordinates,
+               placeId: dropoffLocation.placeId,
+               instructions: deliveryInstructions,
+            },
             notes,
             total: total,
             payWithMobile: payWithMobile,
             phoneNumber: payWithMobile ? phoneNumber : undefined,
          };
 
-         // Place order API call
          const response = await ApiService.post(
             '/api/orders',
             orderData,
@@ -116,10 +162,7 @@ export default function CheckoutScreen() {
          );
 
          if (response.success) {
-            // Clear basket after successful order
             dispatch({ type: 'CLEAR_BASKET' });
-
-            // Navigate to order confirmation screen
             router.replace({
                pathname: '/OrderConfirmationScreen',
                params: {
@@ -146,7 +189,6 @@ export default function CheckoutScreen() {
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
          >
-            {/* Header */}
             <View style={styles.header}>
                <TouchableOpacity
                   onPress={() => router.back()}
@@ -157,39 +199,8 @@ export default function CheckoutScreen() {
                <ThemedText style={styles.headerTitle}>Checkout</ThemedText>
             </View>
 
-            {/* Main Content */}
             <ThemedView style={styles.contentContainer}>
                <ScrollView showsVerticalScrollIndicator={false}>
-                  {/* Customer Info Section */}
-                  <ThemedView style={styles.section}>
-                     <ThemedText style={styles.sectionTitle}>
-                        Customer Information
-                     </ThemedText>
-                     <ThemedView style={styles.infoRow}>
-                        <MaterialIcons
-                           name="person"
-                           size={22}
-                           color="#28B9F4"
-                        />
-                        <ThemedText style={styles.infoText}>
-                           {user?.name || 'Guest'}
-                        </ThemedText>
-                     </ThemedView>
-                     <ThemedView style={styles.infoRow}>
-                        <MaterialIcons name="email" size={22} color="#28B9F4" />
-                        <ThemedText style={styles.infoText}>
-                           {user?.email || 'Not available'}
-                        </ThemedText>
-                     </ThemedView>
-                     <ThemedView style={styles.infoRow}>
-                        <MaterialIcons name="phone" size={22} color="#28B9F4" />
-                        <ThemedText style={styles.infoText}>
-                           {user?.phone || 'Not available'}
-                        </ThemedText>
-                     </ThemedView>
-                  </ThemedView>
-
-                  {/* Order Summary Section */}
                   <ThemedView style={styles.section}>
                      <ThemedText style={styles.sectionTitle}>
                         Order Summary
@@ -203,9 +214,8 @@ export default function CheckoutScreen() {
                               x{item.quantity}
                            </ThemedText>
                            <ThemedText style={styles.itemPrice}>
-                              {`${(
-                                 item.price * item.quantity
-                              ).toLocaleString()} FCFA`}
+                              {(item.price * item.quantity).toLocaleString()}{' '}
+                              FCFA
                            </ThemedText>
                         </ThemedView>
                      ))}
@@ -217,30 +227,65 @@ export default function CheckoutScreen() {
                      </ThemedView>
                   </ThemedView>
 
-                  {/* Pickup Details Section */}
                   <ThemedView style={styles.section}>
                      <ThemedText style={styles.sectionTitle}>
                         Pickup Details
                      </ThemedText>
 
-                     {/* Location Input */}
                      <View style={{ marginBottom: 12 }}>
-                        <ThemedText
-                           style={{
-                              fontSize: 16,
-                              color: '#333',
-                              marginBottom: 8,
-                           }}
-                        >
+                        <ThemedText style={styles.fieldLabel}>
                            Pickup Location
                         </ThemedText>
-                        <TextInput
-                           style={styles.locationInput}
-                           placeholder="Enter pickup address/location (e.g. home, office, etc.)"
-                           placeholderTextColor="#999"
-                           value={location}
-                           onChangeText={setLocation}
-                        />
+                        <TouchableOpacity
+                           style={styles.locationSelector}
+                           onPress={() => {
+                              console.log('Pickup location button pressed');
+                              setShowPickupLocationSelector(true);
+                           }}
+                        >
+                           <MaterialIcons
+                              name="location-on"
+                              size={20}
+                              color="#00719c"
+                           />
+                           <ThemedText style={styles.locationText}>
+                              {pickupLocation?.address ||
+                                 'Select pickup location'}
+                           </ThemedText>
+                           <MaterialIcons
+                              name="arrow-forward-ios"
+                              size={16}
+                              color="#999"
+                           />
+                        </TouchableOpacity>
+                     </View>
+
+                     <View style={{ marginBottom: 12 }}>
+                        <ThemedText style={styles.fieldLabel}>
+                           Delivery Location
+                        </ThemedText>
+                        <TouchableOpacity
+                           style={styles.locationSelector}
+                           onPress={() => {
+                              console.log('Dropoff location button pressed');
+                              setShowDropoffLocationSelector(true);
+                           }}
+                        >
+                           <MaterialIcons
+                              name="location-on"
+                              size={20}
+                              color="#ef4444"
+                           />
+                           <ThemedText style={styles.locationText}>
+                              {dropoffLocation?.address ||
+                                 'Select delivery location'}
+                           </ThemedText>
+                           <MaterialIcons
+                              name="arrow-forward-ios"
+                              size={16}
+                              color="#999"
+                           />
+                        </TouchableOpacity>
                      </View>
 
                      <TouchableOpacity
@@ -250,7 +295,7 @@ export default function CheckoutScreen() {
                         <MaterialIcons
                            name="calendar-today"
                            size={22}
-                           color="#28B9F4"
+                           color="#00719c"
                         />
                         <ThemedText style={styles.datePickerText}>
                            {format(pickupDate, 'EEE, MMM d, yyyy')}
@@ -264,14 +309,13 @@ export default function CheckoutScreen() {
                         <MaterialIcons
                            name="access-time"
                            size={22}
-                           color="#28B9F4"
+                           color="#00719c"
                         />
                         <ThemedText style={styles.datePickerText}>
                            {format(pickupDate, 'h:mm a')}
                         </ThemedText>
                      </TouchableOpacity>
 
-                     {/* Date/Time Pickers (Native) */}
                      {showDatePicker && (
                         <DateTimePicker
                            value={pickupDate}
@@ -281,7 +325,6 @@ export default function CheckoutScreen() {
                            minimumDate={tomorrow}
                         />
                      )}
-
                      {showTimePicker && (
                         <DateTimePicker
                            value={pickupDate}
@@ -292,13 +335,27 @@ export default function CheckoutScreen() {
                      )}
                   </ThemedView>
 
-                  {/* Notes Section */}
+                  <ThemedView style={styles.section}>
+                     <ThemedText style={styles.sectionTitle}>
+                        Delivery Instructions
+                     </ThemedText>
+                     <TextInput
+                        style={styles.textInput}
+                        placeholder="e.g., Leave at door, Call when arriving..."
+                        placeholderTextColor="#999"
+                        multiline
+                        numberOfLines={3}
+                        value={deliveryInstructions}
+                        onChangeText={setDeliveryInstructions}
+                     />
+                  </ThemedView>
+
                   <ThemedView style={styles.section}>
                      <ThemedText style={styles.sectionTitle}>
                         Additional Notes
                      </ThemedText>
                      <TextInput
-                        style={styles.notesInput}
+                        style={styles.textInput}
                         placeholder="Enter any special instructions..."
                         placeholderTextColor="#999"
                         multiline
@@ -308,17 +365,12 @@ export default function CheckoutScreen() {
                      />
                   </ThemedView>
 
-                  {/* Payment Method Section */}
                   <ThemedView style={styles.section}>
                      <ThemedText style={styles.sectionTitle}>
                         Payment Method
                      </ThemedText>
                      <TouchableOpacity
-                        style={{
-                           flexDirection: 'row',
-                           alignItems: 'center',
-                           marginBottom: 10,
-                        }}
+                        style={styles.paymentOption}
                         onPress={() => setPayWithMobile((v) => !v)}
                      >
                         <MaterialIcons
@@ -328,7 +380,7 @@ export default function CheckoutScreen() {
                                  : 'radio-button-unchecked'
                            }
                            size={22}
-                           color="#28B9F4"
+                           color="#00719c"
                         />
                         <ThemedText style={{ marginLeft: 10 }}>
                            Pay with Mobile Money
@@ -336,7 +388,7 @@ export default function CheckoutScreen() {
                      </TouchableOpacity>
                      {payWithMobile && (
                         <TextInput
-                           style={styles.notesInput}
+                           style={styles.textInput}
                            placeholder="Enter your mobile number"
                            placeholderTextColor="#999"
                            keyboardType="phone-pad"
@@ -347,7 +399,6 @@ export default function CheckoutScreen() {
                   </ThemedView>
                </ScrollView>
 
-               {/* Place Order Button */}
                <View style={styles.footer}>
                   <TouchableOpacity
                      style={styles.placeOrderButton}
@@ -364,6 +415,26 @@ export default function CheckoutScreen() {
                   </TouchableOpacity>
                </View>
             </ThemedView>
+
+            {/* Pickup Location Selector Modal */}
+            {showPickupLocationSelector && (
+               <LocationSelector
+                  isOpen={showPickupLocationSelector}
+                  onClose={() => setShowPickupLocationSelector(false)}
+                  onLocationSelect={handlePickupLocationSelect}
+                  title="Select Pickup Location"
+               />
+            )}
+
+            {/* Dropoff Location Selector Modal */}
+            {showDropoffLocationSelector && (
+               <LocationSelector
+                  isOpen={showDropoffLocationSelector}
+                  onClose={() => setShowDropoffLocationSelector(false)}
+                  onLocationSelect={handleDropoffLocationSelect}
+                  title="Select Dropoff Location"
+               />
+            )}
          </KeyboardAvoidingView>
       </SafeAreaView>
    );
@@ -376,7 +447,7 @@ const styles = StyleSheet.create({
       paddingHorizontal: 20,
       paddingTop: 20,
       paddingBottom: 20,
-      backgroundColor: '#28B9F4',
+      backgroundColor: '#00719c',
    },
    backButton: {
       marginRight: 15,
@@ -407,15 +478,10 @@ const styles = StyleSheet.create({
       marginBottom: 15,
       color: '#333',
    },
-   infoRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 10,
-   },
-   infoText: {
+   fieldLabel: {
       fontSize: 16,
-      marginLeft: 10,
-      color: '#555',
+      color: '#333',
+      marginBottom: 8,
    },
    itemRow: {
       flexDirection: 'row',
@@ -437,7 +503,7 @@ const styles = StyleSheet.create({
       flex: 1,
       fontSize: 16,
       textAlign: 'right',
-      color: '#28B9F4',
+      color: '#00719c',
       fontWeight: '500',
    },
    totalRow: {
@@ -455,7 +521,23 @@ const styles = StyleSheet.create({
    totalValue: {
       fontSize: 18,
       fontWeight: '700',
-      color: '#28B9F4',
+      color: '#00719c',
+   },
+   locationSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 15,
+      paddingHorizontal: 15,
+      borderWidth: 1,
+      borderColor: '#E0E0E0',
+      borderRadius: 8,
+      backgroundColor: '#F9F9F9',
+   },
+   locationText: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 16,
+      color: '#333',
    },
    datePickerButton: {
       flexDirection: 'row',
@@ -472,17 +554,7 @@ const styles = StyleSheet.create({
       fontSize: 16,
       color: '#333',
    },
-   locationInput: {
-      borderWidth: 1,
-      borderColor: '#E0E0E0',
-      borderRadius: 8,
-      padding: 15,
-      fontSize: 16,
-      color: '#333',
-      backgroundColor: '#F9F9F9',
-      marginBottom: 2,
-   },
-   notesInput: {
+   textInput: {
       borderWidth: 1,
       borderColor: '#E0E0E0',
       borderRadius: 8,
@@ -492,18 +564,10 @@ const styles = StyleSheet.create({
       textAlignVertical: 'top',
       minHeight: 100,
    },
-   paymentPlaceholder: {
-      borderWidth: 1,
-      borderColor: '#E0E0E0',
-      borderRadius: 8,
-      padding: 15,
-      backgroundColor: '#F9F9F9',
-   },
-   paymentText: {
-      fontSize: 16,
-      color: '#666',
-      fontStyle: 'italic',
-      textAlign: 'center',
+   paymentOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
    },
    footer: {
       paddingVertical: 20,
@@ -512,7 +576,7 @@ const styles = StyleSheet.create({
       borderTopColor: '#F0F0F0',
    },
    placeOrderButton: {
-      backgroundColor: '#28B9F4',
+      backgroundColor: '#00719c',
       borderRadius: 30,
       paddingVertical: 18,
       alignItems: 'center',

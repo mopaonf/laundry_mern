@@ -43,7 +43,7 @@ export default function OrderConfirmationScreen() {
 
    // Poll payment status if pending
    useEffect(() => {
-      let interval: NodeJS.Timeout | null = null;
+      let interval: ReturnType<typeof setInterval> | null = null;
       if (paymentStatus === 'PENDING' && paymentReference) {
          setLoading(true);
          interval = setInterval(async () => {

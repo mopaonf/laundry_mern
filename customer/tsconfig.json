@@ -1,14 +1,14 @@
 {
    "compilerOptions": {
       "target": "ES2020",
-      "lib": ["ES2020"],
+      "lib": ["ES2020", "DOM", "DOM.Iterable"],
       "allowJs": true,
       "skipLibCheck": true,
       "esModuleInterop": true,
       "allowSyntheticDefaultImports": true,
       "strict": true,
       "forceConsistentCasingInFileNames": true,
-      "moduleResolution": "node",
+      "moduleResolution": "bundler",
       "resolveJsonModule": true,
       "isolatedModules": true,
       "noEmit": true,
@@ -20,9 +20,19 @@
          "@hooks/*": ["./hooks/*"],
          "@utils/*": ["./utils/*"],
          "@store/*": ["./store/*"],
-         "@assets/*": ["./assets/*"]
-      }
+         "@assets/*": ["./assets/*"],
+         "@types/*": ["./types/*"]
+      },
+      "types": ["@expo/vector-icons", "react-native", "node"],
+      "allowUmdGlobalAccess": true
    },
-   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-   "exclude": ["node_modules"]
+   "include": [
+      "**/*.ts",
+      "**/*.tsx",
+      ".expo/types/**/*.ts",
+      "expo-env.d.ts",
+      "types/**/*.d.ts"
+   ],
+   "exclude": ["node_modules"],
+   "extends": "expo/tsconfig.base"
 }

@@ -12,13 +12,15 @@ import {
    FiAlertCircle,
    FiRefreshCw,
    FiX,
+   FiMapPin,
    // Remove unused FiCheckCircle import
 } from 'react-icons/fi';
 
 // Add Google Fonts import
 import { Pacifico } from 'next/font/google';
-import { useOrderStore, Order } from '@/store/orderStore';
+import { useOrderStore, Order } from '../../store/orderStore';
 import { useAppToast } from '@/hooks/useAppToast';
+import MapViewModal from '@/components/MapViewModal';
 
 // Initialize the font
 const pacifico = Pacifico({
@@ -29,8 +31,13 @@ const pacifico = Pacifico({
 
 // Status badge colors
 const STATUS_COLORS: Record<string, string> = {
+   'Pending Pickup': 'bg-red-100 text-red-700 border-red-200',
+   'Picked Up': 'bg-orange-100 text-orange-700 border-orange-200',
    'In Progress': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-   'Ready for Pickup': 'bg-blue-100 text-blue-700 border-blue-200',
+   'Ready for Pickup': 'bg-blue-100 text-[#00719c] border-[#00719c]',
+   'Ready for Delivery': 'bg-blue-100 text-blue-700 border-blue-200',
+   'Out for Delivery': 'bg-purple-100 text-purple-700 border-purple-200',
+   Delivered: 'bg-green-100 text-green-700 border-green-200',
    Completed: 'bg-gray-100 text-gray-700 border-gray-200',
 };
 
@@ -43,6 +50,10 @@ export default function OrdersPage() {
    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
    const [isModalOpen, setIsModalOpen] = useState(false);
    const [updatingStatus, setUpdatingStatus] = useState(false);
+   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
+   const [isMapViewOpen, setIsMapViewOpen] = useState(false);
+   const [mapViewOrder, setMapViewOrder] = useState<Order | null>(null);
 
    // Use useCallback to memoize the loadOrders function
    const loadOrders = useCallback(async () => {
@@ -108,6 +119,23 @@ export default function OrdersPage() {
       setSelectedOrder(null);
    };
 
+   // Handle opening the map view modal
+   const openMapView = (order: Order) => {
+      console.log('Opening map view for order:', order);
+      console.log('Order pickup location:', order.pickupLocation);
+      console.log('Order dropoff location:', order.dropoffLocation);
+      setMapViewOrder(order);
+      setIsMapViewOpen(true);
+      console.log('Map view state set to open');
+   };
+
+   // Handle closing the map view modal
+   const closeMapView = () => {
+      console.log('Closing map view');
+      setIsMapViewOpen(false);
+      setMapViewOrder(null);
+   };
+
    // Handle status change
    const handleStatusChange = async (newStatus: string) => {
       if (!selectedOrder) return;
@@ -149,21 +177,28 @@ export default function OrdersPage() {
          <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
             {/* Status Tabs - updated with cursor and hover effects */}
             <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-               {['All', 'In Progress', 'Ready for Pickup', 'Completed'].map(
-                  (tab) => (
-                     <button
-                        key={tab}
-                        className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg text-center min-w-[90px] md:min-w-[120px] cursor-pointer transform transition-all duration-200 hover:shadow-md ${
-                           activeTab === tab
-                              ? 'bg-[#28B9F4] text-white hover:bg-[#1a9fd8]'
-                              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-[#28B9F4]'
-                        } whitespace-nowrap flex-shrink-0`}
-                        onClick={() => setActiveTab(tab)}
-                     >
-                        {tab}
-                     </button>
-                  )
-               )}
+               {[
+                  'All',
+                  'Pending Pickup',
+                  'Picked Up',
+                  'In Progress',
+                  'Ready for Delivery',
+                  'Out for Delivery',
+                  'Delivered',
+                  'Completed',
+               ].map((tab) => (
+                  <button
+                     key={tab}
+                     className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg text-center min-w-[90px] md:min-w-[120px] cursor-pointer transform transition-all duration-200 hover:shadow-md ${
+                        activeTab === tab
+                           ? 'bg-[#28B9F4] text-white hover:bg-[#1a9fd8]'
+                           : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-[#28B9F4]'
+                     } whitespace-nowrap flex-shrink-0`}
+                     onClick={() => setActiveTab(tab)}
+                  >
+                     {tab}
+                  </button>
+               ))}
             </div>
 
             {/* Search Input - with mobile optimizations */}
@@ -241,6 +276,12 @@ export default function OrdersPage() {
                         </th>
                         <th
                            scope="col"
+                           className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                           Map
+                        </th>
+                        <th
+                           scope="col"
                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
                            Action
@@ -272,6 +313,15 @@ export default function OrdersPage() {
                               <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-400">
                                  {order.total}
                               </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-center">
+                                 <button
+                                    onClick={() => openMapView(order)}
+                                    className="text-[#28B9F4] hover:text-gray-800 inline-flex items-center gap-1 transition-all duration-200 hover:underline cursor-pointer"
+                                 >
+                                    <FiMapPin className="w-4 h-4" />
+                                    <span>View Map</span>
+                                 </button>
+                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right">
                                  <button
                                     onClick={() => openOrderModal(order)}
@@ -286,7 +336,7 @@ export default function OrdersPage() {
                      ) : (
                         <tr>
                            <td
-                              colSpan={6}
+                              colSpan={7}
                               className="px-6 py-12 text-center text-gray-500"
                            >
                               No orders found matching your criteria
@@ -547,7 +597,7 @@ export default function OrdersPage() {
                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
                                     ${
                                        selectedOrder.status === status
-                                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                          ? 'bg-blue-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                           : 'bg-white border border-[#28B9F4] text-[#28B9F4] hover:bg-[#f0f9fe] hover:shadow-sm cursor-pointer'
                                     }
                                  `}
@@ -581,6 +631,20 @@ export default function OrdersPage() {
                   </div>
                </div>
             </div>
+         )}
+         {/* Map View Modal */}
+         {isMapViewOpen && mapViewOrder && (
+            <>
+               {console.log('Rendering MapViewModal with:', {
+                  isMapViewOpen,
+                  mapViewOrder,
+               })}
+               <MapViewModal
+                  isOpen={isMapViewOpen}
+                  onClose={closeMapView}
+                  order={mapViewOrder}
+               />
+            </>
          )}
       </div>
    );

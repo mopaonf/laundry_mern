@@ -27,6 +27,25 @@ export type Order = {
    total: number | string;
    items?: OrderItem[];
    notes?: string;
+   // Add location fields
+   pickupLocation?: {
+      address: string;
+      coordinates: {
+         latitude: number;
+         longitude: number;
+      };
+   };
+   dropoffLocation?: {
+      address: string;
+      coordinates: {
+         latitude: number;
+         longitude: number;
+      };
+   };
+   runnerLocation?: {
+      latitude: number;
+      longitude: number;
+   };
 };
 
 type OrderStore = {
@@ -65,6 +84,16 @@ export const useOrderStore = create<OrderStore>((set) => ({
          } // Transform the API response to match our Order type
          const transformedOrders = ordersData.map(
             (orderData: Record<string, unknown>) => {
+               // Debug: Log if we have location data
+               console.log(
+                  `Order ${orderData._id} - pickupLocation:`,
+                  !!orderData.pickupLocation
+               );
+               console.log(
+                  `Order ${orderData._id} - dropoffLocation:`,
+                  !!orderData.dropoffLocation
+               );
+
                // Type safety for customerId object
                const customerId = orderData.customerId as
                   | {
@@ -93,6 +122,13 @@ export const useOrderStore = create<OrderStore>((set) => ({
                         : (orderData.total as string | number),
                   items: orderData.items as OrderItem[] | undefined,
                   notes: orderData.notes as string | undefined,
+                  // Add the location fields that were missing
+                  pickupLocation:
+                     orderData.pickupLocation as Order['pickupLocation'],
+                  dropoffLocation:
+                     orderData.dropoffLocation as Order['dropoffLocation'],
+                  runnerLocation:
+                     orderData.runnerLocation as Order['runnerLocation'],
                };
             }
          );

@@ -14,6 +14,7 @@ const orderRoutes = require('./routes/order.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const paymentSyncRoutes = require('./routes/payment-sync.routes');
+const placesRoutes = require('./routes/places.routes');
 
 // Initialize Express app
 const app = express();
@@ -63,6 +64,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/payment-sync', paymentSyncRoutes);
+app.use('/api/places', placesRoutes);
 
 // Route not found handler - make sure this comes AFTER your routes
 app.use((req, res, next) => {

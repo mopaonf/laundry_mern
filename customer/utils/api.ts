@@ -21,17 +21,17 @@ const BACKEND_PORT = '5000';
 
 // Based on connectivity test results, we found working IPs
 // These are working IP patterns for local development
-export const DEVICE_API_URL = 'http://192.168.5.1:5000';
+export const DEVICE_API_URL = 'http://172.20.10.5:5000';
 export const FALLBACK_IPS = [
    `http://localhost:${BACKEND_PORT}`,
    `http://127.0.0.1:${BACKEND_PORT}`,
-   `http://192.168.5.1:${BACKEND_PORT}`,
+   `http://172.20.10.5:${BACKEND_PORT}`,
    `http://192.168.137.1:${BACKEND_PORT}`,
    `http://10.0.2.2:${BACKEND_PORT}`, // Android emulator -> host localhost
 ];
 
 // For emulators, default to localhost with fallbacks
-export const EMULATOR_API_URL = `http://192.168.5.1:${BACKEND_PORT}`;
+export const EMULATOR_API_URL = `http://172.20.10.5:${BACKEND_PORT}`;
 
 // Determine API URL based on environment
 export const API_URL = isProduction
@@ -107,7 +107,7 @@ export const checkApiConnectivity = async (): Promise<boolean> => {
 
                const response = await fetch(url, {
                   method: 'GET',
-                  signal: controller.signal,
+                  signal: controller.signal as any,
                });
 
                clearTimeout(timeoutId);
@@ -190,7 +190,7 @@ export const apiRequest = async <T>(
             `API Request (Attempt ${attemptCount}/${maxAttempts}): ${method} ${url}`
          );
 
-         const headers: HeadersInit = {
+         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
          };
 
@@ -207,7 +207,7 @@ export const apiRequest = async <T>(
          // Use timeout to prevent hanging requests
          const controller = new AbortController();
          const timeoutId = setTimeout(() => controller.abort(), 10000);
-         config.signal = controller.signal;
+         config.signal = controller.signal as any;
 
          const response = await fetch(url, config);
          clearTimeout(timeoutId);
@@ -232,12 +232,12 @@ export const apiRequest = async <T>(
          }
 
          // Parse JSON response
-         const responseData = await response.json();
+         const responseData = (await response.json()) as any;
 
          if (!response.ok) {
             // If the response includes an error message, use it
             const errorMsg =
-               responseData.message ||
+               responseData?.message ||
                `Request failed with status ${response.status}`;
             console.error(`API Error: ${errorMsg}`);
             throw new ApiError(errorMsg, response.status);
@@ -318,11 +318,11 @@ export const login = async (email: string, password: string) => {
          );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
 
       if (!response.ok) {
          console.error('Login error:', data);
-         throw new ApiError(data.message || 'Login failed');
+         throw new ApiError(data?.message || 'Login failed');
       }
 
       return data;
@@ -381,11 +381,11 @@ export const register = async (userData: {
          );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
 
       if (!response.ok) {
          console.error('Register error:', data);
-         throw new ApiError(data.message || 'Registration failed');
+         throw new ApiError(data?.message || 'Registration failed');
       }
 
       return data;

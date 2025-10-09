@@ -100,7 +100,7 @@ export default function ServerConfigScreen() {
             style={styles.input}
             value={baseUrl}
             onChangeText={setBaseUrl}
-            placeholder="http://192.168.5.1:5000"
+            placeholder="http://172.20.10.5:5000"
             autoCapitalize="none"
             autoCorrect={false}
          />
