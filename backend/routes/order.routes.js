@@ -55,6 +55,12 @@ router.put(
    orderController.updateRunnerLocation
 );
 
+// GET /api/orders/reward-status - Get customer's reward status
+router.get('/reward-status', protect, orderController.getRewardStatus);
+
+// GET /api/orders/reward-history - Get customer's reward history
+router.get('/reward-history', protect, orderController.getRewardHistory);
+
 // Update order status
 router.put('/:id/status', async (req, res, next) => {
    try {

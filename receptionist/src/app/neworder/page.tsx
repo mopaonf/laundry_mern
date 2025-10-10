@@ -10,10 +10,12 @@ import {
    FiFileText,
    FiSearch,
    FiLoader,
+   FiMapPin,
 } from 'react-icons/fi';
 import { fetchCustomers } from '../../store/customers';
 import { fetchInventoryItems, InventoryItem } from '../../store/inventory';
 import { apiRequest } from '../../utils/api';
+import LocationSelector from '../../components/LocationSelector';
 import toast from 'react-hot-toast';
 
 // Customer interface
@@ -39,6 +41,16 @@ interface OrderItem {
    quantity: number;
 }
 
+// Location interface to match LocationSelector
+interface Location {
+   address: string;
+   coordinates: {
+      latitude: number;
+      longitude: number;
+   } | null;
+   placeId: string | null;
+}
+
 export default function NewOrderPage() {
    const [customerId, setCustomerId] = useState<string>('');
    const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -46,6 +58,12 @@ export default function NewOrderPage() {
    const [quantity, setQuantity] = useState<number>(1);
    const [pickupDate, setPickupDate] = useState<string>('');
    const [notes, setNotes] = useState<string>('');
+
+   // Location states
+   const [pickupLocation, setPickupLocation] = useState<Location | null>(null);
+   const [dropoffLocation, setDropoffLocation] = useState<Location | null>(
+      null
+   );
 
    // Loading states
    const [isLoadingCustomers, setIsLoadingCustomers] = useState<boolean>(false);
@@ -298,14 +316,50 @@ export default function NewOrderPage() {
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // In a real app, you would send this data to your backend
+      // Validate required fields
+      if (!customerId) {
+         toast.error('Please select a customer', { icon: '👤' });
+         return;
+      }
+
+      if (orderItems.length === 0) {
+         toast.error('Please add at least one item', { icon: '📦' });
+         return;
+      }
+
+      if (!pickupDate) {
+         toast.error('Please select a pickup date', { icon: '📅' });
+         return;
+      }
+
+      if (!pickupLocation) {
+         toast.error('Please select a pickup location', { icon: '📍' });
+         return;
+      }
+
+      if (!dropoffLocation) {
+         toast.error('Please select a dropoff location', { icon: '📍' });
+         return;
+      }
+
       const orderData = {
          customerId,
          items: orderItems,
          pickupDate,
          notes,
          total: calculateTotal(),
+         pickupLocation: {
+            address: pickupLocation.address,
+            coordinates: pickupLocation.coordinates,
+            placeId: pickupLocation.placeId,
+         },
+         dropoffLocation: {
+            address: dropoffLocation.address,
+            coordinates: dropoffLocation.coordinates,
+            placeId: dropoffLocation.placeId,
+         },
       };
+
       console.log('Submitting order:', orderData);
       try {
          // Call API endpoint using the apiRequest utility
@@ -332,6 +386,8 @@ export default function NewOrderPage() {
          setPickupDate('');
          setNotes('');
          setCustomerSearchTerm('');
+         setPickupLocation(null);
+         setDropoffLocation(null);
       } catch (error) {
          console.error('Error creating order:', error);
          // Show error toast
@@ -691,6 +747,139 @@ export default function NewOrderPage() {
                </div>
             </div>
 
+            {/* Location Details */}
+            <div className="bg-white rounded-xl shadow p-6">
+               <div className="flex items-center mb-4">
+                  <FiMapPin className="text-[#28B9F4] mr-2" size={20} />
+                  <h2 className="text-xl font-semibold text-gray-800">
+                     Pickup & Delivery Locations
+                  </h2>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Pickup Location */}
+                  <div>
+                     <label className="block text-gray-700 mb-2 font-medium">
+                        Pickup Location *
+                     </label>
+                     <div className="border border-gray-300 rounded-lg p-3 bg-gray-50">
+                        {pickupLocation ? (
+                           <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                 <div className="flex items-center mb-1">
+                                    <FiMapPin
+                                       className="text-green-600 mr-2"
+                                       size={16}
+                                    />
+                                    <span className="font-medium text-gray-800">
+                                       Selected
+                                    </span>
+                                 </div>
+                                 <p className="text-sm text-gray-600 pl-6">
+                                    {pickupLocation.address}
+                                 </p>
+                              </div>
+                              <button
+                                 type="button"
+                                 onClick={() => setPickupLocation(null)}
+                                 className="text-red-500 hover:text-red-700 ml-2"
+                                 title="Remove location"
+                              >
+                                 <FiTrash2 size={16} />
+                              </button>
+                           </div>
+                        ) : (
+                           <div className="text-gray-500 text-center py-2">
+                              <FiMapPin className="mx-auto mb-2" size={20} />
+                              <p>No pickup location selected</p>
+                           </div>
+                        )}
+                     </div>
+                     <div className="mt-2 text-gray-700">
+                        <LocationSelector
+                           onLocationSelect={setPickupLocation}
+                           defaultLocation={pickupLocation}
+                           placeholder="Enter pickup address..."
+                        />
+                     </div>
+                  </div>
+
+                  {/* Dropoff Location */}
+                  <div>
+                     <label className="block text-gray-700 mb-2 font-medium">
+                        Delivery Location *
+                     </label>
+                     <div className="border border-gray-300 rounded-lg p-3 bg-gray-50">
+                        {dropoffLocation ? (
+                           <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                 <div className="flex items-center mb-1">
+                                    <FiMapPin
+                                       className="text-blue-600 mr-2"
+                                       size={16}
+                                    />
+                                    <span className="font-medium text-gray-800">
+                                       Selected
+                                    </span>
+                                 </div>
+                                 <p className="text-sm text-gray-600 pl-6">
+                                    {dropoffLocation.address}
+                                 </p>
+                              </div>
+                              <button
+                                 type="button"
+                                 onClick={() => setDropoffLocation(null)}
+                                 className="text-red-500 hover:text-red-700 ml-2"
+                                 title="Remove location"
+                              >
+                                 <FiTrash2 size={16} />
+                              </button>
+                           </div>
+                        ) : (
+                           <div className="text-gray-500 text-center py-2">
+                              <FiMapPin className="mx-auto mb-2" size={20} />
+                              <p>No delivery location selected</p>
+                           </div>
+                        )}
+                     </div>
+                     <div className="mt-2 text-gray-700">
+                        <LocationSelector
+                           onLocationSelect={setDropoffLocation}
+                           defaultLocation={dropoffLocation}
+                           placeholder="Enter delivery address..."
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start">
+                     <FiMapPin
+                        className="text-blue-600 mt-0.5 mr-2"
+                        size={16}
+                     />
+                     <div className="text-sm text-blue-800">
+                        <p className="font-medium mb-1">
+                           Location Requirements:
+                        </p>
+                        <ul className="text-xs space-y-1">
+                           <li>
+                              • Pickup location: Where to collect the items from
+                              the customer
+                           </li>
+                           <li>
+                              • Delivery location: Where to return the cleaned
+                              items
+                           </li>
+                           <li>
+                              • Both locations are required for order processing
+                           </li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
             {/* Order Summary */}
             <div className="bg-white rounded-xl shadow p-6">
                <div className="flex justify-between items-center mb-4">
@@ -702,12 +891,78 @@ export default function NewOrderPage() {
                   </div>
                </div>
 
+               {/* Summary Details */}
+               {(selectedCustomer || pickupLocation || dropoffLocation) && (
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                     <h3 className="font-medium text-gray-800 mb-3">
+                        Order Details:
+                     </h3>
+
+                     {selectedCustomer && (
+                        <div className="mb-2 flex items-center text-sm">
+                           <FiUser className="text-gray-500 mr-2" size={14} />
+                           <span className="text-gray-600">Customer:</span>
+                           <span className="ml-2 font-medium">
+                              {selectedCustomer.name}
+                           </span>
+                        </div>
+                     )}
+
+                     {pickupLocation && (
+                        <div className="mb-2 flex items-start text-sm">
+                           <FiMapPin
+                              className="text-green-600 mr-2 mt-0.5"
+                              size={14}
+                           />
+                           <div>
+                              <span className="text-gray-600">Pickup:</span>
+                              <span className="ml-2 text-gray-800">
+                                 {pickupLocation.address}
+                              </span>
+                           </div>
+                        </div>
+                     )}
+
+                     {dropoffLocation && (
+                        <div className="mb-2 flex items-start text-sm">
+                           <FiMapPin
+                              className="text-blue-600 mr-2 mt-0.5"
+                              size={14}
+                           />
+                           <div>
+                              <span className="text-gray-600">Delivery:</span>
+                              <span className="ml-2 text-gray-800">
+                                 {dropoffLocation.address}
+                              </span>
+                           </div>
+                        </div>
+                     )}
+
+                     {pickupDate && (
+                        <div className="flex items-center text-sm">
+                           <FiCalendar
+                              className="text-gray-500 mr-2"
+                              size={14}
+                           />
+                           <span className="text-gray-600">Pickup Date:</span>
+                           <span className="ml-2 font-medium">
+                              {new Date(pickupDate).toLocaleDateString()}
+                           </span>
+                        </div>
+                     )}
+                  </div>
+               )}
+
                <div className="mt-6 flex justify-end">
                   <button
                      type="submit"
                      className="w-full md:w-auto px-8 py-4 bg-[#28B9F4] text-white rounded-lg flex items-center justify-center hover:bg-[#1a9fd8] transition-all duration-200 text-lg font-medium cursor-pointer hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
                      disabled={
-                        !customerId || orderItems.length === 0 || !pickupDate
+                        !customerId ||
+                        orderItems.length === 0 ||
+                        !pickupDate ||
+                        !pickupLocation ||
+                        !dropoffLocation
                      }
                   >
                      <FiSave className="mr-2" /> Submit Order

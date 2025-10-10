@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { FiX, FiMapPin, FiNavigation } from 'react-icons/fi';
+import { loadGoogleMaps } from '../utils/googleMapsLoader';
 
-// Declare Google Maps types for TypeScript
+// Declare global types for Google Maps
 declare global {
    interface Window {
       google: any;
@@ -38,88 +39,6 @@ interface MapViewModalProps {
       status: string;
    };
 }
-
-// Global flag to track script loading
-let isGoogleMapsLoading = false;
-let isGoogleMapsLoaded = false;
-
-const loadGoogleMapsScript = (): Promise<void> => {
-   return new Promise((resolve, reject) => {
-      // If already loaded
-      if (isGoogleMapsLoaded && window.google) {
-         resolve();
-         return;
-      }
-
-      // If currently loading, wait for it
-      if (isGoogleMapsLoading) {
-         const checkLoaded = () => {
-            if (isGoogleMapsLoaded && window.google) {
-               resolve();
-            } else {
-               setTimeout(checkLoaded, 100);
-            }
-         };
-         checkLoaded();
-         return;
-      }
-
-      // Check if script already exists
-      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-         if (window.google) {
-            isGoogleMapsLoaded = true;
-            resolve();
-            return;
-         }
-         // Script exists but not loaded yet, wait for it
-         const checkLoaded = () => {
-            if (window.google) {
-               isGoogleMapsLoaded = true;
-               resolve();
-            } else {
-               setTimeout(checkLoaded, 100);
-            }
-         };
-         checkLoaded();
-         return;
-      }
-
-      // Load the script
-      isGoogleMapsLoading = true;
-      const script = document.createElement('script');
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-
-      if (!apiKey) {
-         reject(new Error('Google Maps API key is not configured'));
-         return;
-      }
-
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-
-      script.onload = () => {
-         isGoogleMapsLoading = false;
-         isGoogleMapsLoaded = true;
-         resolve();
-      };
-
-      script.onerror = () => {
-         isGoogleMapsLoading = false;
-         reject(new Error('Failed to load Google Maps script'));
-      };
-
-      document.head.appendChild(script);
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-         if (isGoogleMapsLoading) {
-            isGoogleMapsLoading = false;
-            reject(new Error('Google Maps script loading timeout'));
-         }
-      }, 10000);
-   });
-};
 
 export default function MapViewModal({
    isOpen,
@@ -177,22 +96,9 @@ export default function MapViewModal({
 
             console.log('Map container ref is available');
 
-            // Check if we have a valid API key
-            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-            if (!apiKey || apiKey === 'your_actual_google_maps_api_key_here') {
-               console.log(
-                  'No valid Google Maps API key, showing location summary instead'
-               );
-               setError(
-                  'Google Maps API key not configured. Showing location information below.'
-               );
-               setIsLoading(false);
-               return;
-            }
-
-            // Load Google Maps script
+            // Load Google Maps script using centralized loader
             try {
-               await loadGoogleMapsScript();
+               await loadGoogleMaps();
             } catch (mapError) {
                console.error('Failed to load Google Maps:', mapError);
                setError(
@@ -428,9 +334,10 @@ export default function MapViewModal({
                   </div>
                   <button
                      onClick={onClose}
-                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                     className="flex items-center justify-center p-3 bg-gray-100 hover:bg-red-100 border-2 border-gray-300 hover:border-red-300 rounded-full transition-all duration-200 ease-in-out group"
+                     title="Close map"
                   >
-                     <FiX className="w-5 h-5" />
+                     <FiX className="w-6 h-6 text-gray-600 group-hover:text-red-600 transition-colors duration-200" />
                   </button>
                </div>
 

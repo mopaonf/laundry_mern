@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    View,
    Text,
@@ -24,6 +24,19 @@ import { useWashBasket } from '@/components/WashBasketContext';
 import { useAuthStore } from '@/store/auth.store';
 import { ApiService } from '@/utils/api.service';
 import LocationSelector, { LocationData } from '@/components/LocationSelector';
+import { RewardBanner } from '@/components/RewardBanner';
+
+interface RewardStatus {
+   customerId: string;
+   currentCycleOrderCount: number;
+   ordersUntilDiscount: number;
+   isEligibleForDiscount: boolean;
+   nextDiscountAmount: number;
+   totalOrdersCount: number;
+   completedCycles: number;
+   totalRewardsEarned: number;
+   currentCycleTotal: number;
+}
 
 export default function CheckoutScreen() {
    const router = useRouter();
@@ -46,6 +59,10 @@ export default function CheckoutScreen() {
    const [showDropoffLocationSelector, setShowDropoffLocationSelector] =
       useState(false);
 
+   // Reward system states
+   const [rewardStatus, setRewardStatus] = useState<RewardStatus | null>(null);
+   const [loadingRewardStatus, setLoadingRewardStatus] = useState(false);
+
    console.log(
       'CheckoutScreen render - showPickupLocationSelector:',
       showPickupLocationSelector
@@ -67,6 +84,38 @@ export default function CheckoutScreen() {
       (sum, item) => sum + item.price * item.quantity,
       0
    );
+
+   // Calculate final total after potential discount
+   const discountAmount = rewardStatus?.isEligibleForDiscount
+      ? rewardStatus.nextDiscountAmount
+      : 0;
+   const finalTotal = Math.max(0, total - discountAmount);
+
+   // Fetch reward status when component mounts
+   useEffect(() => {
+      fetchRewardStatus();
+   }, [token]);
+
+   const fetchRewardStatus = async () => {
+      if (!token) return;
+
+      try {
+         setLoadingRewardStatus(true);
+         const response = await ApiService.get<{ data: RewardStatus }>(
+            '/api/orders/reward-status',
+            token
+         );
+
+         if (response.success && response.data?.data) {
+            setRewardStatus(response.data.data);
+            console.log('Reward Status:', response.data.data);
+         }
+      } catch (error) {
+         console.error('Error fetching reward status:', error);
+      } finally {
+         setLoadingRewardStatus(false);
+      }
+   };
 
    const handleDateChange = (event: any, selectedDate?: Date) => {
       setShowDatePicker(false);
@@ -150,7 +199,7 @@ export default function CheckoutScreen() {
                instructions: deliveryInstructions,
             },
             notes,
-            total: total,
+            total: finalTotal, // Use final total after discount
             payWithMobile: payWithMobile,
             phoneNumber: payWithMobile ? phoneNumber : undefined,
          };
@@ -170,6 +219,15 @@ export default function CheckoutScreen() {
                   pickupDate: pickupDate.toISOString(),
                   paymentStatus: response.data?.data?.paymentStatus,
                   paymentReference: response.data?.data?.paymentReference,
+                  // Pass reward information
+                  discountApplied:
+                     response.data?.rewardInfo?.discountApplied || 0,
+                  originalTotal:
+                     response.data?.rewardInfo?.originalTotal || total,
+                  finalTotal:
+                     response.data?.rewardInfo?.finalTotal || finalTotal,
+                  isRewardOrder:
+                     response.data?.rewardInfo?.isRewardOrder || false,
                },
             });
          } else {
@@ -201,6 +259,16 @@ export default function CheckoutScreen() {
 
             <ThemedView style={styles.contentContainer}>
                <ScrollView showsVerticalScrollIndicator={false}>
+                  {/* Reward Banner - Prominent display */}
+                  {rewardStatus && (
+                     <View style={styles.section}>
+                        <RewardBanner
+                           rewardStatus={rewardStatus}
+                           orderTotal={total}
+                        />
+                     </View>
+                  )}
+
                   <ThemedView style={styles.section}>
                      <ThemedText style={styles.sectionTitle}>
                         Order Summary
@@ -220,11 +288,143 @@ export default function CheckoutScreen() {
                         </ThemedView>
                      ))}
                      <ThemedView style={styles.totalRow}>
-                        <ThemedText style={styles.totalLabel}>Total</ThemedText>
+                        <ThemedText style={styles.totalLabel}>
+                           Subtotal
+                        </ThemedText>
                         <ThemedText style={styles.totalValue}>
                            {total.toLocaleString()} FCFA
                         </ThemedText>
                      </ThemedView>
+
+                     {/* Reward Discount Section */}
+                     {rewardStatus?.isEligibleForDiscount && (
+                        <ThemedView style={styles.discountRow}>
+                           <View style={styles.discountInfo}>
+                              <MaterialIcons
+                                 name="card-giftcard"
+                                 size={20}
+                                 color="#28a745"
+                              />
+                              <ThemedText style={styles.discountLabel}>
+                                 Reward Discount
+                              </ThemedText>
+                           </View>
+                           <ThemedText style={styles.discountValue}>
+                              -{discountAmount.toLocaleString()} FCFA
+                           </ThemedText>
+                        </ThemedView>
+                     )}
+
+                     <ThemedView
+                        style={[styles.totalRow, styles.finalTotalRow]}
+                     >
+                        <ThemedText style={styles.finalTotalLabel}>
+                           Total{' '}
+                           {rewardStatus?.isEligibleForDiscount
+                              ? '(After Discount)'
+                              : ''}
+                        </ThemedText>
+                        <ThemedText style={styles.finalTotalValue}>
+                           {finalTotal.toLocaleString()} FCFA
+                        </ThemedText>
+                     </ThemedView>
+                  </ThemedView>
+
+                  {/* Reward Status Section */}
+                  <ThemedView style={styles.section}>
+                     <ThemedText style={styles.sectionTitle}>
+                        Reward Status
+                     </ThemedText>
+
+                     {loadingRewardStatus ? (
+                        <View style={styles.rewardLoading}>
+                           <ActivityIndicator size="small" color="#00719c" />
+                           <ThemedText style={styles.rewardLoadingText}>
+                              Loading reward status...
+                           </ThemedText>
+                        </View>
+                     ) : rewardStatus ? (
+                        <>
+                           {rewardStatus.isEligibleForDiscount ? (
+                              <View style={styles.rewardCard}>
+                                 <View style={styles.rewardHeader}>
+                                    <MaterialIcons
+                                       name="celebration"
+                                       size={24}
+                                       color="#28a745"
+                                    />
+                                    <ThemedText style={styles.rewardTitle}>
+                                       🎉 Congratulations!
+                                    </ThemedText>
+                                 </View>
+                                 <ThemedText style={styles.rewardMessage}>
+                                    You've earned a discount of{' '}
+                                    <Text style={styles.discountHighlight}>
+                                       {rewardStatus.nextDiscountAmount.toLocaleString()}{' '}
+                                       FCFA
+                                    </Text>{' '}
+                                    on this order!
+                                 </ThemedText>
+                                 <ThemedText style={styles.rewardSubtext}>
+                                    This discount is the average of your last 10
+                                    orders.
+                                 </ThemedText>
+                              </View>
+                           ) : (
+                              <View style={styles.rewardCard}>
+                                 <View style={styles.rewardHeader}>
+                                    <MaterialIcons
+                                       name="card-giftcard"
+                                       size={24}
+                                       color="#00719c"
+                                    />
+                                    <ThemedText style={styles.rewardTitle}>
+                                       Reward Progress
+                                    </ThemedText>
+                                 </View>
+                                 <View style={styles.progressContainer}>
+                                    <View style={styles.progressBar}>
+                                       <View
+                                          style={[
+                                             styles.progressFill,
+                                             {
+                                                width: `${
+                                                   (rewardStatus.currentCycleOrderCount /
+                                                      10) *
+                                                   100
+                                                }%`,
+                                             },
+                                          ]}
+                                       />
+                                    </View>
+                                    <ThemedText style={styles.progressText}>
+                                       {rewardStatus.currentCycleOrderCount}/10
+                                       orders
+                                    </ThemedText>
+                                 </View>
+                                 <ThemedText style={styles.rewardMessage}>
+                                    {rewardStatus.ordersUntilDiscount === 1
+                                       ? 'Just 1 more order to earn your next reward!'
+                                       : `${rewardStatus.ordersUntilDiscount} more orders to earn your next reward!`}
+                                 </ThemedText>
+                                 {rewardStatus.totalRewardsEarned > 0 && (
+                                    <ThemedText style={styles.rewardSubtext}>
+                                       Total rewards earned:{' '}
+                                       {rewardStatus.totalRewardsEarned.toLocaleString()}{' '}
+                                       FCFA
+                                    </ThemedText>
+                                 )}
+                              </View>
+                           )}
+                        </>
+                     ) : (
+                        <View style={styles.rewardCard}>
+                           <ThemedText style={styles.rewardMessage}>
+                              Unable to load reward status. Your order will
+                              still be processed normally.
+                           </ThemedText>
+                        </View>
+                     )}
                   </ThemedView>
 
                   <ThemedView style={styles.section}>
@@ -586,5 +786,109 @@ const styles = StyleSheet.create({
       color: '#fff',
       fontSize: 18,
       fontWeight: 'bold',
+   },
+   // Reward and discount styles
+   discountRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F0F0F0',
+   },
+   discountInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+   },
+   discountLabel: {
+      fontSize: 16,
+      color: '#28a745',
+      fontWeight: '500',
+      marginLeft: 8,
+   },
+   discountValue: {
+      fontSize: 16,
+      color: '#28a745',
+      fontWeight: '600',
+   },
+   finalTotalRow: {
+      backgroundColor: '#F8F9FA',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      marginTop: 8,
+   },
+   finalTotalLabel: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#333',
+   },
+   finalTotalValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#00719c',
+   },
+   rewardLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+   },
+   rewardLoadingText: {
+      marginLeft: 10,
+      fontSize: 16,
+      color: '#666',
+   },
+   rewardCard: {
+      backgroundColor: '#F8F9FA',
+      borderRadius: 12,
+      padding: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: '#00719c',
+   },
+   rewardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+   },
+   rewardTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#333',
+      marginLeft: 8,
+   },
+   rewardMessage: {
+      fontSize: 16,
+      color: '#333',
+      lineHeight: 22,
+      marginBottom: 8,
+   },
+   rewardSubtext: {
+      fontSize: 14,
+      color: '#666',
+      fontStyle: 'italic',
+   },
+   discountHighlight: {
+      color: '#28a745',
+      fontWeight: '700',
+   },
+   progressContainer: {
+      marginBottom: 12,
+   },
+   progressBar: {
+      height: 8,
+      backgroundColor: '#E9ECEF',
+      borderRadius: 4,
+      marginBottom: 8,
+   },
+   progressFill: {
+      height: '100%',
+      backgroundColor: '#00719c',
+      borderRadius: 4,
+   },
+   progressText: {
+      fontSize: 14,
+      color: '#666',
+      textAlign: 'center',
    },
 });

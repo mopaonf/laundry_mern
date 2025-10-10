@@ -25,6 +25,10 @@ export type Order = {
    createdAt: string;
    pickupDate?: string;
    total: number | string;
+   isRewardOrder: boolean; // true if reward applied, false otherwise
+   originalTotal?: number; // Total before discount
+   finalTotal?: number; // Total after discount
+   rewardDiscount?: number; // Amount of discount applied
    items?: OrderItem[];
    notes?: string;
    // Add location fields
@@ -120,6 +124,13 @@ export const useOrderStore = create<OrderStore>((set) => ({
                      typeof orderData.total === 'number'
                         ? `FCFA ${orderData.total.toLocaleString()}`
                         : (orderData.total as string | number),
+                  // Add reward-related fields
+                  isRewardOrder: Boolean(orderData.isRewardOrder) || false,
+                  originalTotal: orderData.originalTotal as number | undefined,
+                  finalTotal: orderData.finalTotal as number | undefined,
+                  rewardDiscount: orderData.rewardDiscount as
+                     | number
+                     | undefined,
                   items: orderData.items as OrderItem[] | undefined,
                   notes: orderData.notes as string | undefined,
                   // Add the location fields that were missing

@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const User = require('../models/User');
 const campayService = require('../services/campayService');
+const RewardService = require('../services/rewardService');
 const { createTransactionForOrder } = require('./transaction.util');
 
 /**
@@ -100,7 +101,9 @@ exports.createOrder = async (req, res) => {
             success: false,
             message: 'Order must include at least one item',
          });
-      } // Transform items to match our schema (handle both id and itemId formats)
+      }
+
+      // Transform items to match our schema (handle both id and itemId formats)
       const transformedItems = items.map((item) => ({
          itemId: item.itemId || item.id, // Accept either itemId or id
          name: item.name,
@@ -108,13 +111,57 @@ exports.createOrder = async (req, res) => {
          quantity: item.quantity,
       }));
 
+      // Calculate the actual total from items (don't trust frontend total)
+      const calculatedTotal = transformedItems.reduce((sum, item) => {
+         return sum + item.price * item.quantity;
+      }, 0);
+
+      // Log for debugging
+      console.log('Order creation totals:', {
+         frontendTotal: total,
+         calculatedTotal: calculatedTotal,
+         items: transformedItems.map((item) => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            subtotal: item.price * item.quantity,
+         })),
+      });
+
+      // Validate that frontend total matches calculated total (within tolerance)
+      const tolerance = 1; // Allow 1 FCFA difference for rounding
+      if (Math.abs(total - calculatedTotal) > tolerance) {
+         console.warn(
+            `Total mismatch: Frontend=${total}, Calculated=${calculatedTotal}`
+         );
+         // Use calculated total as it's more reliable
+      }
+
+      // Check if customer is eligible for reward discount
+      let rewardDiscount = 0;
+      let originalTotal = calculatedTotal; // Use calculated total
+      let finalTotal = calculatedTotal;
+      let isRewardOrder = false;
+
+      const discountEligibility = await RewardService.checkDiscountEligibility(
+         customerId
+      );
+      if (discountEligibility.isEligible) {
+         rewardDiscount = discountEligibility.discountAmount;
+         finalTotal = Math.max(0, calculatedTotal - rewardDiscount);
+         isRewardOrder = true;
+         console.log(
+            `Applying reward discount of ${rewardDiscount} to order for customer ${customerId}. Original: ${calculatedTotal}, Final: ${finalTotal}`
+         );
+      }
+
       let paymentStatus = 'NOT_REQUIRED';
       let paymentReference = undefined;
       // If payment is requested, initiate Campay collection
       if (payWithMobile && phoneNumber) {
          try {
             const paymentResult = await campayService.collect(
-               total,
+               finalTotal, // Use final total after discount
                phoneNumber,
                'Laundry Order Payment'
             );
@@ -126,7 +173,7 @@ exports.createOrder = async (req, res) => {
                userId: customerId,
                orderId: null, // Will update after order is created
                reference: paymentReference,
-               amount: total,
+               amount: finalTotal, // Use final total after discount
                phoneNumber,
                status: 'PENDING',
                operator: paymentResult.operator,
@@ -148,7 +195,10 @@ exports.createOrder = async (req, res) => {
          items: transformedItems,
          pickupDate,
          notes,
-         total,
+         total: finalTotal,
+         originalTotal: isRewardOrder ? originalTotal : undefined,
+         rewardDiscount: rewardDiscount,
+         isRewardOrder: isRewardOrder,
          paymentStatus,
          paymentReference,
          pickupLocation: {
@@ -179,10 +229,50 @@ exports.createOrder = async (req, res) => {
          );
       }
 
+      // Track the order for rewards (use original total for reward calculation)
+      try {
+         if (isRewardOrder) {
+            // Apply the reward discount
+            await RewardService.applyRewardDiscount(
+               customerId,
+               order._id,
+               originalTotal
+            );
+         } else {
+            // Track the order for future rewards
+            await RewardService.trackOrder(
+               customerId,
+               order._id,
+               originalTotal
+            );
+         }
+      } catch (rewardError) {
+         console.error('Error processing rewards:', rewardError);
+         // Don't fail the order creation if reward processing fails
+      }
+
+      // Get updated reward status to include in response
+      let rewardStatus = null;
+      try {
+         const rewardStatusResult = await RewardService.getCustomerRewardStatus(
+            customerId
+         );
+         rewardStatus = rewardStatusResult.rewardStatus;
+      } catch (rewardError) {
+         console.error('Error getting reward status:', rewardError);
+      }
+
       res.status(201).json({
          success: true,
          message: 'Order created successfully',
          data: order,
+         rewardInfo: {
+            discountApplied: rewardDiscount,
+            originalTotal: isRewardOrder ? originalTotal : undefined,
+            finalTotal: finalTotal,
+            isRewardOrder: isRewardOrder,
+            rewardStatus: rewardStatus,
+         },
       });
    } catch (error) {
       console.error('Error creating order:', error);
@@ -476,6 +566,102 @@ exports.updateRunnerLocation = async (req, res) => {
       res.status(500).json({
          success: false,
          message: 'Error updating runner location',
+         error:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+   }
+};
+
+/**
+ * @desc    Get customer's reward status
+ * @route   GET /api/orders/reward-status
+ * @access  Private (Customer/Receptionist/Admin)
+ */
+exports.getRewardStatus = async (req, res) => {
+   try {
+      let customerId;
+
+      // If the request is from a customer, use their own ID
+      if (req.user.role === 'customer') {
+         customerId = req.user._id;
+      } else if (
+         req.user.role === 'receptionist' ||
+         req.user.role === 'admin'
+      ) {
+         // If from staff, use the provided customerId from query params
+         customerId = req.query.customerId;
+         if (!customerId) {
+            return res.status(400).json({
+               success: false,
+               message: 'Customer ID is required for staff requests',
+            });
+         }
+      } else {
+         return res.status(403).json({
+            success: false,
+            message: 'Not authorized to view reward status',
+         });
+      }
+
+      const result = await RewardService.getCustomerRewardStatus(customerId);
+
+      res.status(200).json({
+         success: true,
+         data: result.rewardStatus,
+      });
+   } catch (error) {
+      console.error('Error getting reward status:', error);
+      res.status(500).json({
+         success: false,
+         message: 'Error fetching reward status',
+         error:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+   }
+};
+
+/**
+ * @desc    Get customer's reward history
+ * @route   GET /api/orders/reward-history
+ * @access  Private (Customer/Receptionist/Admin)
+ */
+exports.getRewardHistory = async (req, res) => {
+   try {
+      let customerId;
+
+      // If the request is from a customer, use their own ID
+      if (req.user.role === 'customer') {
+         customerId = req.user._id;
+      } else if (
+         req.user.role === 'receptionist' ||
+         req.user.role === 'admin'
+      ) {
+         // If from staff, use the provided customerId from query params
+         customerId = req.query.customerId;
+         if (!customerId) {
+            return res.status(400).json({
+               success: false,
+               message: 'Customer ID is required for staff requests',
+            });
+         }
+      } else {
+         return res.status(403).json({
+            success: false,
+            message: 'Not authorized to view reward history',
+         });
+      }
+
+      const result = await RewardService.getCustomerRewardHistory(customerId);
+
+      res.status(200).json({
+         success: true,
+         data: result.rewardHistory,
+      });
+   } catch (error) {
+      console.error('Error getting reward history:', error);
+      res.status(500).json({
+         success: false,
+         message: 'Error fetching reward history',
          error:
             process.env.NODE_ENV === 'development' ? error.message : undefined,
       });

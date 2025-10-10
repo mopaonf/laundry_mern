@@ -78,6 +78,7 @@ const orderSchema = new mongoose.Schema({
          'Picked Up',
          'In Progress',
          'Ready for Pickup',
+         'Ready for delivery',
          'Out for Delivery',
          'Delivered',
          'Completed',
@@ -87,12 +88,10 @@ const orderSchema = new mongoose.Schema({
    // Pickup location (where to collect laundry from customer)
    pickupLocation: {
       type: locationSchema,
-      required: true,
    },
    // Dropoff location (where to deliver clean laundry to customer)
    dropoffLocation: {
       type: locationSchema,
-      required: true,
    },
    // Actual pickup and delivery times
    pickedUpAt: {
@@ -121,6 +120,19 @@ const orderSchema = new mongoose.Schema({
    },
    paymentReference: {
       type: String,
+   },
+   // Reward system fields
+   rewardDiscount: {
+      type: Number,
+      default: 0,
+      min: [0, 'Reward discount cannot be negative'],
+   },
+   originalTotal: {
+      type: Number, // Store original total before discount
+   },
+   isRewardOrder: {
+      type: Boolean,
+      default: false, // True if this order had a reward discount applied
    },
 });
 
